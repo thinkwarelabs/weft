@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/AppShell'
-import { BusinessProfileForm } from '@/components/settings/BusinessProfileForm'
+import { SettingsTabs } from '@/components/settings/SettingsTabs'
 
 export default function SettingsPage() {
   return (
@@ -7,7 +7,7 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
       <p className="mt-1 text-sm text-zinc-500">Your business details appear on every invoice you issue.</p>
       <div className="mt-8">
-        <BusinessProfileForm />
+        <SettingsTabs />
       </div>
     </AppShell>
   )
