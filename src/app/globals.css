@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-stone-50);
+  color: var(--color-zinc-900);
+  -webkit-font-smoothing: antialiased;
+}

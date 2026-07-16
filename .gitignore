@@ -14,3 +14,7 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# local reference assets (not app code)
+Invoice-WD7VNO2J-0012.pdf
+thinkwarelabs_logo.png
