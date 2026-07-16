@@ -81,6 +81,7 @@ export function FinancialsDashboard() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Expense | null>(null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
+  const [allExpenseTypes, setAllExpenseTypes] = useState<string[]>([])
   const { toast } = useToast()
 
   useEffect(() => {
@@ -90,20 +91,44 @@ export function FinancialsDashboard() {
       .catch(() => {})
   }, [])
 
+  const loadExpenseTypes = useCallback(() => {
+    fetch('/api/expenses')
+      .then((r) => r.json())
+      .then((d) => {
+        const set = new Set<string>()
+        for (const e of d.expenses ?? []) if (e.expense_type) set.add(e.expense_type)
+        setAllExpenseTypes([...set].sort())
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadExpenseTypes()
+  }, [loadExpenseTypes])
+
   const { from, to } = periodRange(sel)
   const ready = sel.granularity !== 'custom' || (!!from && !!to && from <= to)
 
-  const loadFinancials = useCallback(() => {
-    if (!ready) {
-      setData(null)
-      return
-    }
-    setData(null)
-    fetch(`/api/financials?from=${from}&to=${to}`)
-      .then((r) => r.json())
-      .then((d) => setData(d))
-      .catch(() => toast('Failed to load financials', 'error'))
-  }, [ready, from, to, toast])
+  const loadFinancials = useCallback(
+    ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!ready) {
+        if (!silent) setData(null)
+        return
+      }
+      if (!silent) setData(null)
+      fetch(`/api/financials?from=${from}&to=${to}`)
+        .then(async (r) => {
+          const d = await r.json()
+          if (!r.ok) {
+            toast(d.error ?? 'Failed to load financials', 'error')
+            return
+          }
+          setData(d)
+        })
+        .catch(() => toast('Failed to load financials', 'error'))
+    },
+    [ready, from, to, toast]
+  )
 
   useEffect(() => {
     loadFinancials()
@@ -140,11 +165,7 @@ export function FinancialsDashboard() {
     [showMonthly, from, to, revenueRows, expenseRows]
   )
 
-  const knownTypes = useMemo(() => {
-    const set = new Set<string>()
-    for (const e of data?.expenses ?? []) if (e.expense_type) set.add(e.expense_type)
-    return [...set].sort()
-  }, [data])
+  const knownTypes = allExpenseTypes
 
   const paidInvoices = useMemo(
     () => [...(data?.invoices ?? [])].sort((a, b) => b.paidDate.localeCompare(a.paidDate)),
@@ -167,7 +188,8 @@ export function FinancialsDashboard() {
   }
 
   function onExpenseSaved() {
-    loadFinancials()
+    loadFinancials({ silent: true })
+    loadExpenseTypes()
   }
 
   async function deleteExpense() {
