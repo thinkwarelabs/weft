@@ -58,29 +58,40 @@ export const settingsInput = z.object({
   default_tax_rate: z.number().min(0).max(100),
 })
 
-export const expenseInput = z
-  .object({
-    name: z.string().trim().min(1, 'Name is required'),
-    expense_type: optionalText,
-    amount: z.number().positive('Amount must be > 0'),
-    currency: z.string().length(3),
-    payer_type: z.enum(['company', 'person']),
-    payer_name: optionalText,
-    expense_date: isoDate,
-    note: optionalText,
-  })
-  .superRefine((data, ctx) => {
-    if (data.payer_type === 'person' && data.payer_name.trim() === '') {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['payer_name'],
-        message: 'Payer name is required when payer type is person',
-      })
-    }
-  })
+// Base shape without the cross-field refine, so a PATCH route can call `.partial()` on it.
+// Zod v4 throws at runtime ("`.partial()` cannot be used on object schemas containing
+// refinements") if you call `.partial()` on a schema built with `.superRefine()`, so the
+// refine must be layered on top of the plain object rather than baked into `expenseInput`.
+export const expenseObjectSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  expense_type: optionalText,
+  amount: z.number().positive('Amount must be > 0'),
+  currency: z.string().length(3),
+  payer_type: z.enum(['company', 'person']),
+  payer_name: optionalText,
+  expense_date: isoDate,
+  note: optionalText,
+})
+
+function requirePayerNameForPerson(data: { payer_type: string; payer_name: string }, ctx: z.RefinementCtx) {
+  if (data.payer_type === 'person' && data.payer_name.trim() === '') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['payer_name'],
+      message: 'Payer name is required when payer type is person',
+    })
+  }
+}
+
+export const expenseInput = expenseObjectSchema.superRefine(requirePayerNameForPerson)
+
+// For PATCH: partial shape only, no cross-field refine (see note above). The route is
+// responsible for checking the person/payer_name rule against the merged (existing + patch) data.
+export const expensePatchInput = expenseObjectSchema.partial()
 
 export type ClientInput = z.infer<typeof clientInput>
 export type InvoiceItemInput = z.infer<typeof invoiceItemInput>
 export type InvoiceInput = z.infer<typeof invoiceInput>
 export type SettingsInput = z.infer<typeof settingsInput>
 export type ExpenseInput = z.infer<typeof expenseInput>
+export type ExpensePatchInput = z.infer<typeof expensePatchInput>

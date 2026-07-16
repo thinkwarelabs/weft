@@ -10,7 +10,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
   const { data: invoice, error } = await db
     .from('invoices')
-    .update({ status: 'paid', updated_at: new Date().toISOString() })
+    .update({ status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()
