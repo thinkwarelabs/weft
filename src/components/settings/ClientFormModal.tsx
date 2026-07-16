@@ -52,10 +52,14 @@ export function ClientFormModal({ open, onClose, initial, onSaved }: {
   async function save() {
     setSaving(true)
     setErrors({})
+    const payload = { ...form }
+    delete (payload as Record<string, unknown>).id
+    delete (payload as Record<string, unknown>).archived
+    delete (payload as Record<string, unknown>).created_at
     const res = await fetch(initial ? `/api/clients/${initial.id}` : '/api/clients', {
       method: initial ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     })
     setSaving(false)
     if (res.ok) {

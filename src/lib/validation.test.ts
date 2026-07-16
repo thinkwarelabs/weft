@@ -30,6 +30,20 @@ describe('clientInput', () => {
     expect(clientInput.safeParse({ name: 'Vercel Inc.' }).success).toBe(true)
     expect(clientInput.safeParse({ name: '' }).success).toBe(false)
   })
+
+  it('documents the .partial() default hazard: absent keys still come back defaulted', () => {
+    const parsed = clientInput.partial().parse({})
+    // Every optional field gets defaulted to '' even though none were in the input —
+    // this is why the PATCH route must not blindly spread `parsed.data` into an update.
+    expect(parsed).toMatchObject({ address_line1: '', city: '', email: '' })
+  })
+
+  it('filtering parsed.data to keys present in the raw body prevents the wipe', () => {
+    const body = { archived: true }
+    const parsed = clientInput.partial().parse(body)
+    const update = Object.fromEntries(Object.entries(parsed).filter(([k]) => k in body))
+    expect(Object.keys(update)).toHaveLength(0)
+  })
 })
 
 describe('settingsInput', () => {
