@@ -155,10 +155,14 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     if (!form.client_id) errs.client_id = 'Select a client'
     if (!form.issue_date) errs.issue_date = 'Required'
     if (!form.due_date) errs.due_date = 'Required'
-    const hasValidItem = form.items.some(
-      (r) => r.description.trim() && Number(r.qty) > 0 && Number(r.unit_price) >= 0
-    )
-    if (!hasValidItem) errs.items = 'Add at least one item with a description, quantity and price'
+    const included = form.items.filter((r) => r.description.trim())
+    if (included.length === 0) {
+      errs.items = 'Add at least one item'
+    } else if (
+      included.some((r) => !(Number(r.qty) > 0) || r.unit_price.trim() === '' || !(Number(r.unit_price) >= 0))
+    ) {
+      errs.items = 'Every item needs a qty > 0 and a unit price'
+    }
     setErrors(errs)
     if (Object.keys(errs).length > 0) {
       toast('Fix the highlighted fields', 'error')
