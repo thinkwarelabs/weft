@@ -16,11 +16,12 @@ export async function GET(_req: Request, { params }: Ctx) {
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params
-  const { data: existing } = await db.from('invoices').select('id, status').eq('id', id).single()
+  const { data: existing } = await db.from('invoices').select('*').eq('id', id).single()
   if (!existing) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
   if (existing.status !== 'draft') {
     return NextResponse.json({ error: 'Only draft invoices can be edited' }, { status: 409 })
   }
+  const { data: oldItems } = await db.from('invoice_items').select('*').eq('invoice_id', id)
 
   const body = await req.json()
   const parsed = invoiceInput.safeParse(body)
@@ -58,7 +59,30 @@ export async function PATCH(req: Request, { params }: Ctx) {
     sort_order: i,
   }))
   const { error: itemsError } = await db.from('invoice_items').insert(rows)
-  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  if (itemsError) {
+    // restore: re-insert old items and revert the invoice row to its previous values
+    if (oldItems && oldItems.length > 0) {
+      await db.from('invoice_items').insert(oldItems)
+    }
+    await db
+      .from('invoices')
+      .update({
+        client_id: existing.client_id,
+        issue_date: existing.issue_date,
+        due_date: existing.due_date,
+        currency: existing.currency,
+        tax_label: existing.tax_label,
+        tax_rate: existing.tax_rate,
+        payment_link: existing.payment_link,
+        notes: existing.notes,
+        subtotal: existing.subtotal,
+        tax_amount: existing.tax_amount,
+        total: existing.total,
+        updated_at: existing.updated_at,
+      })
+      .eq('id', id)
+    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+  }
   return NextResponse.json({ invoice })
 }
 
