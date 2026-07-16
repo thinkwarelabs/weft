@@ -1,9 +1,13 @@
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { formatMoney } from '@/lib/money'
 import { formatDateLong } from '@/lib/dates'
 
 const fontsDir = path.join(process.cwd(), 'src/lib/pdf/fonts')
+// Buffer src: a bare Windows path ("C:\...") is misparsed as a URL by react-pdf's
+// image loader, so the logo must be handed over as bytes, not a path.
+const logoSrc = { data: readFileSync(path.join(process.cwd(), 'public/logo.png')), format: 'png' as const }
 Font.register({
   family: 'Inter',
   fonts: [
@@ -109,7 +113,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
         <View style={s.headerRow}>
           <Text style={s.title}>Invoice</Text>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image style={s.logo} src={path.join(process.cwd(), 'public/logo.png')} />
+          <Image style={s.logo} src={logoSrc} />
         </View>
 
         <View style={s.metaTable}>
