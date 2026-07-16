@@ -35,6 +35,13 @@ export const invoiceInput = z.object({
   items: z.array(invoiceItemInput).min(1, 'Add at least one item'),
 })
 
+export const paymentInput = z.object({
+  payment_date: isoDate,
+  amount_received: z.number().min(0),
+  tds_amount: z.number().min(0).default(0),
+  payment_reference: optionalText,
+})
+
 export const settingsInput = z.object({
   company_name: z.string().trim().min(1, 'Company name is required'),
   address_line1: optionalText,
@@ -95,3 +102,4 @@ export type InvoiceInput = z.infer<typeof invoiceInput>
 export type SettingsInput = z.infer<typeof settingsInput>
 export type ExpenseInput = z.infer<typeof expenseInput>
 export type ExpensePatchInput = z.infer<typeof expensePatchInput>
+export type PaymentInput = z.infer<typeof paymentInput>

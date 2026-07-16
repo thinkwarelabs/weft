@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'draft' | 'finalized' | 'paid'
+export type InvoiceStatus = 'draft' | 'finalized' | 'paid' | 'cancelled'
 
 export interface BusinessProfile {
   id: number
@@ -59,6 +59,9 @@ export interface Invoice {
   tax_amount: number
   total: number
   paid_at: string | null
+  amount_received: number | null
+  tds_amount: number
+  payment_reference: string | null
   created_at: string
   updated_at: string
 }
@@ -100,4 +103,4 @@ export interface InvoiceListRow {
   clients: { name: string } | null
 }
 
-export type { ClientInput, ExpenseInput, InvoiceInput, InvoiceItemInput, SettingsInput } from './validation'
+export type { ClientInput, ExpenseInput, InvoiceInput, InvoiceItemInput, PaymentInput, SettingsInput } from './validation'
