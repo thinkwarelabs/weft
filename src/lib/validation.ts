@@ -58,7 +58,29 @@ export const settingsInput = z.object({
   default_tax_rate: z.number().min(0).max(100),
 })
 
+export const expenseInput = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required'),
+    expense_type: optionalText,
+    amount: z.number().positive('Amount must be > 0'),
+    currency: z.string().length(3),
+    payer_type: z.enum(['company', 'person']),
+    payer_name: optionalText,
+    expense_date: isoDate,
+    note: optionalText,
+  })
+  .superRefine((data, ctx) => {
+    if (data.payer_type === 'person' && data.payer_name.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['payer_name'],
+        message: 'Payer name is required when payer type is person',
+      })
+    }
+  })
+
 export type ClientInput = z.infer<typeof clientInput>
 export type InvoiceItemInput = z.infer<typeof invoiceItemInput>
 export type InvoiceInput = z.infer<typeof invoiceInput>
 export type SettingsInput = z.infer<typeof settingsInput>
+export type ExpenseInput = z.infer<typeof expenseInput>

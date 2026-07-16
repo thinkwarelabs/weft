@@ -58,6 +58,7 @@ export interface Invoice {
   subtotal: number
   tax_amount: number
   total: number
+  paid_at: string | null
   created_at: string
   updated_at: string
 }
@@ -73,6 +74,19 @@ export interface InvoiceItem {
   sort_order: number
 }
 
+export interface Expense {
+  id: string
+  name: string
+  expense_type: string | null
+  amount: number
+  currency: string
+  payer_type: 'company' | 'person'
+  payer_name: string | null
+  expense_date: string
+  note: string | null
+  created_at: string
+}
+
 export interface InvoiceListRow {
   id: string
   invoice_number: string | null
@@ -86,4 +100,4 @@ export interface InvoiceListRow {
   clients: { name: string } | null
 }
 
-export type { ClientInput, InvoiceInput, InvoiceItemInput, SettingsInput } from './validation'
+export type { ClientInput, ExpenseInput, InvoiceInput, InvoiceItemInput, SettingsInput } from './validation'
