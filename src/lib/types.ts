@@ -82,6 +82,7 @@ export interface InvoiceListRow {
   currency: string
   total: number
   created_at: string
+  updated_at: string
   clients: { name: string } | null
 }
 

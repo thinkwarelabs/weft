@@ -6,7 +6,7 @@ import { computeTotals, lineAmount } from '@/lib/money'
 export async function GET() {
   const { data, error } = await db
     .from('invoices')
-    .select('id, invoice_number, issue_date, due_date, status, currency, total, created_at, clients(name)')
+    .select('id, invoice_number, issue_date, due_date, status, currency, total, created_at, updated_at, clients(name)')
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ invoices: data })

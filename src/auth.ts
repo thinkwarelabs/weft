@@ -11,6 +11,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: { strategy: 'jwt' },
   pages: { signIn: '/signin', error: '/signin' },
+  trustHost: true,
   callbacks: {
     signIn({ user }) {
       return isAllowedEmail(user.email)

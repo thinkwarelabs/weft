@@ -50,10 +50,16 @@ export function InvoiceList() {
     () => sumByCurrency((invoices ?? []).filter((r) => r.status === 'finalized')),
     [invoices]
   )
-  const paid = useMemo(
-    () => sumByCurrency((invoices ?? []).filter((r) => r.status === 'paid')),
-    [invoices]
-  )
+  const paidThisMonth = useMemo(() => {
+    const now = new Date()
+    return sumByCurrency(
+      (invoices ?? []).filter((r) => {
+        if (r.status !== 'paid') return false
+        const updated = new Date(r.updated_at)
+        return updated.getFullYear() === now.getFullYear() && updated.getMonth() === now.getMonth()
+      })
+    )
+  }, [invoices])
 
   const filtersActive = q.trim() !== '' || statusFilter !== 'all'
 
@@ -108,8 +114,8 @@ export function InvoiceList() {
           <p className="mt-2 text-2xl font-semibold tracking-tight">{outstanding}</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Paid</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{paid}</p>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Paid this month</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight">{paidThisMonth}</p>
         </Card>
         <Card>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Total invoices</p>

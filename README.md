@@ -20,7 +20,7 @@ Set the following in `.env.local` (gitignored):
 | Variable | Description | Where to Get It |
 |----------|-------------|-----------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Supabase → Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable API key | Supabase → Settings → API → Project API keys (public key) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable API key — currently unused — reserved for future client-side access | Supabase → Settings → API → Project API keys (public key) |
 | `SUPABASE_SECRET_KEY` | Supabase secret API key | Supabase → Settings → API → Project API keys (secret key, starts with `sb_secret_`) |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | Google Cloud Console → Credentials → OAuth client |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Google Cloud Console → Credentials → OAuth client |
