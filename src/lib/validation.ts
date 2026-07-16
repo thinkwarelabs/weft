@@ -1,0 +1,64 @@
+import { z } from 'zod'
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+const optionalText = z.string().trim().optional().default('')
+
+export const clientInput = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  address_line1: optionalText,
+  address_line2: optionalText,
+  city: optionalText,
+  state: optionalText,
+  postal_code: optionalText,
+  country: optionalText,
+  email: z.string().trim().email().optional().or(z.literal('')).default(''),
+  phone: optionalText,
+  tax_id: optionalText,
+})
+
+export const invoiceItemInput = z.object({
+  description: z.string().trim().min(1, 'Description is required'),
+  period: optionalText,
+  qty: z.number().positive('Qty must be > 0'),
+  unit_price: z.number().min(0, 'Price must be >= 0'),
+})
+
+export const invoiceInput = z.object({
+  client_id: z.string().uuid('Pick a client'),
+  issue_date: isoDate,
+  due_date: isoDate,
+  currency: z.string().length(3),
+  tax_label: optionalText,
+  tax_rate: z.number().min(0).max(100),
+  payment_link: z.string().trim().url().optional().or(z.literal('')).default(''),
+  notes: optionalText,
+  items: z.array(invoiceItemInput).min(1, 'Add at least one item'),
+})
+
+export const settingsInput = z.object({
+  company_name: z.string().trim().min(1, 'Company name is required'),
+  address_line1: optionalText,
+  address_line2: optionalText,
+  city: optionalText,
+  state: optionalText,
+  postal_code: optionalText,
+  country: optionalText,
+  email: z.string().trim().email().optional().or(z.literal('')).default(''),
+  phone: optionalText,
+  tax_id: optionalText,
+  legal_note: optionalText,
+  bank_account_name: optionalText,
+  bank_name: optionalText,
+  bank_account_number: optionalText,
+  bank_ifsc: optionalText,
+  bank_swift: optionalText,
+  invoice_prefix: z.string().trim().regex(/^[A-Za-z0-9]{1,8}$/, '1-8 letters/digits').transform((s) => s.toUpperCase()),
+  default_currency: z.string().length(3),
+  default_tax_label: optionalText,
+  default_tax_rate: z.number().min(0).max(100),
+})
+
+export type ClientInput = z.infer<typeof clientInput>
+export type InvoiceItemInput = z.infer<typeof invoiceItemInput>
+export type InvoiceInput = z.infer<typeof invoiceInput>
+export type SettingsInput = z.infer<typeof settingsInput>
