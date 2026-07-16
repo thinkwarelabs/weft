@@ -100,8 +100,8 @@ export function InvoiceList() {
 
   if (!invoices) {
     return (
-      <div className="flex justify-center py-20">
-        <Spinner className="size-6 text-zinc-400" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Spinner className="size-10 text-zinc-400" />
       </div>
     )
   }
@@ -168,7 +168,7 @@ export function InvoiceList() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-zinc-500 border-b border-zinc-100" colSpan={6}>
+                  <td className="px-4 py-10 text-center text-sm text-zinc-500 border-b border-zinc-100" colSpan={6}>
                     No matches
                   </td>
                 </tr>

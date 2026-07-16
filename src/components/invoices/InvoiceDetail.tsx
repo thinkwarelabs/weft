@@ -43,7 +43,7 @@ export function InvoiceDetail({ id }: { id: string }) {
   }, [searchParams, pdfUrl, id, router])
 
   if (notFound) return <p className="py-20 text-center text-sm text-zinc-500">Invoice not found.</p>
-  if (!invoice) return <div className="flex justify-center py-20"><Spinner className="size-6 text-zinc-400" /></div>
+  if (!invoice) return <div className="flex min-h-[60vh] items-center justify-center"><Spinner className="size-10 text-zinc-400" /></div>
 
   async function post(path: 'finalize' | 'mark-paid', kind: 'finalize' | 'paid') {
     setBusy(kind)

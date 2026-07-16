@@ -32,7 +32,7 @@ export function BusinessProfileForm() {
       .catch(() => toast('Failed to load profile', 'error'))
   }, [toast])
 
-  if (!form) return <div className="flex justify-center py-20"><Spinner className="size-6 text-zinc-400" /></div>
+  if (!form) return <div className="flex min-h-[60vh] items-center justify-center"><Spinner className="size-10 text-zinc-400" /></div>
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f!, [k]: e.target.value }))

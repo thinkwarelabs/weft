@@ -129,8 +129,8 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Spinner className="size-6 text-zinc-400" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Spinner className="size-10 text-zinc-400" />
       </div>
     )
   }

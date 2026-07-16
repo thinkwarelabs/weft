@@ -67,7 +67,7 @@ export function ClientsManager() {
     }
   }
 
-  if (!clients) return <div className="flex justify-center py-20"><Spinner className="size-6 text-zinc-400" /></div>
+  if (!clients) return <div className="flex min-h-[60vh] items-center justify-center"><Spinner className="size-10 text-zinc-400" /></div>
 
   return (
     <div className="flex flex-col gap-4">

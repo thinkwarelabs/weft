@@ -15,8 +15,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
             Invoices
           </Link>
+          <Link href="/clients" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
+            Clients
+          </Link>
           <Link href="/settings" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-            Settings
+            Business profile
           </Link>
         </nav>
         <div className="border-t border-zinc-100 px-6 py-4">
