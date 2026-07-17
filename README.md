@@ -1,5 +1,5 @@
 # Thinkware Labs Invoice App
-  
+   
 An internal invoicing tool for Thinkware Labs. Built with Next.js 16, this full-stack application manages invoice drafting, finalization, and PDF generation. Sign-ins are restricted to an allowlist of company email addresses, invoices are stored as structured data in Supabase, and PDFs are generated on demand from that data using @react-pdf/renderer, matching the company invoice template.
 
 ## Stack
