@@ -12,7 +12,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
-import { formatDateLong } from '@/lib/dates'
+import { formatDateLong, todayISO } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
 import { daysOverdue, isOverdue } from '@/lib/overdue'
 import { InvoiceListRow } from '@/lib/types'
@@ -81,7 +81,12 @@ export function InvoiceList() {
 
   useEffect(() => {
     let ignore = false
-    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), status: statusFilter })
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+      status: statusFilter,
+      today: todayISO(), // browser's day, so "Overdue" matches the badges regardless of server timezone
+    })
     if (q) params.set('q', q)
     fetch(`/api/invoices?${params.toString()}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('request failed'))))

@@ -21,8 +21,7 @@ function sumByCurrency(rows: MoneyRow[]): Record<string, number> {
 
 // The summary cards must reflect the WHOLE dataset, independent of the page or
 // the active filter, so they come from their own targeted queries.
-async function loadStats() {
-  const today = todayISO()
+async function loadStats(today: string) {
   const [y, m] = today.split('-').map(Number)
   const monthStart = `${y}-${String(m).padStart(2, '0')}-01`
   const nextMonthStart = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`
@@ -48,7 +47,12 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams
   const { page, pageSize, from, to } = parsePagination(params)
   const status = params.get('status') ?? 'all'
-  const today = todayISO()
+  // "Overdue" and the month boundary depend on the current day. The client sends
+  // the day it is actually showing (its own timezone) so the server-side filter
+  // agrees with the "Overdue" badges the browser renders; fall back to the
+  // server's day for direct/unparameterised calls.
+  const clientToday = params.get('today')
+  const today = clientToday && /^\d{4}-\d{2}-\d{2}$/.test(clientToday) ? clientToday : todayISO()
 
   let query = db.from('invoices').select(LIST_COLUMNS, { count: 'exact' })
 
@@ -80,7 +84,7 @@ export async function GET(req: Request) {
     query = query.order('created_at', { ascending: false })
   }
 
-  const [{ data, error, count }, stats] = await Promise.all([query.range(from, to), loadStats()])
+  const [{ data, error, count }, stats] = await Promise.all([query.range(from, to), loadStats(today)])
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const total = count ?? 0
