@@ -121,9 +121,6 @@ export function BusinessProfileForm() {
           <Field label="IFSC" error={errors.bank_ifsc}>
             <Input value={form.bank_ifsc} onChange={set('bank_ifsc')} />
           </Field>
-          <Field label="SWIFT" error={errors.bank_swift}>
-            <Input value={form.bank_swift} onChange={set('bank_swift')} />
-          </Field>
         </div>
       </Card>
 
@@ -133,11 +130,11 @@ export function BusinessProfileForm() {
             <Input value={form.invoice_prefix} onChange={set('invoice_prefix')} />
           </Field>
           <Field label="Default currency" error={errors.default_currency}>
-            <Select value={form.default_currency} onChange={set('default_currency')}>
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </Select>
+            <Select
+              value={form.default_currency}
+              onChange={(v) => setForm((f) => ({ ...f!, default_currency: v }))}
+              options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+            />
           </Field>
           <Field label="Default tax label" error={errors.default_tax_label}>
             <Input value={form.default_tax_label} onChange={set('default_tax_label')} />

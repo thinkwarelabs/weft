@@ -26,8 +26,18 @@ Set the following in `.env.local` (gitignored):
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Google Cloud Console → Credentials → OAuth client |
 | `AUTH_SECRET` | NextAuth session secret | Generate with `openssl rand -base64 32` |
 | `ALLOWED_EMAILS` | Comma-separated list of Gmail addresses allowed to sign in | Configure as needed |
+| `EMAIL_HOST` | SMTP host for invoice notifications | e.g. `smtp.gmail.com` |
+| `EMAIL_PORT` | SMTP port | `587` for STARTTLS, `465` for implicit TLS |
+| `EMAIL_SECURE` | `true` for implicit TLS (port 465), `false` for STARTTLS (port 587) | Match your port |
+| `EMAIL_USER` | SMTP username | For Gmail, the full address |
+| `EMAIL_PASSWORD` | SMTP password | For Gmail, an App Password (Google Account → Security → App passwords) |
+| `EMAIL_FROM` | From header, e.g. `Thinkware Invoice <you@example.com>` | Defaults to `EMAIL_USER` if unset |
+| `EMAIL_TO` | Comma-separated recipients notified when an invoice is finalized | Configure as needed |
+| `EMAIL_CC` | Comma-separated CC recipients (optional) | Configure as needed |
 
 For Google OAuth, set the redirect URI to `http://localhost:3000/api/auth/callback/google` in the Google Cloud Console.
+
+When an invoice is finalized, an email with the invoice details, the generating user, and the PDF attached is sent to `EMAIL_TO`/`EMAIL_CC`. If the `EMAIL_*` variables are not set, the notification is skipped (finalization still works); an email failure never blocks finalization.
 
 ## Database Setup
 

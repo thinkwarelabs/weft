@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { db } from '@/lib/supabase'
+import { sendInvoiceGeneratedEmail } from '@/lib/email'
+import { buildInvoicePdf } from '@/lib/pdf/buildInvoicePdf'
+
+export const runtime = 'nodejs'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -34,5 +39,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify the team by email. A failure here must never undo or fail the
+  // finalization itself — the invoice number is already allocated.
+  try {
+    const session = await auth()
+    const built = await buildInvoicePdf(id)
+    if (built.ok) {
+      await sendInvoiceGeneratedEmail({
+        invoice: built.invoice,
+        client: built.client,
+        pdf: built.buffer,
+        filename: built.filename,
+        generatedBy: session?.user?.email ?? null,
+      })
+    } else {
+      console.error(`Invoice ${number}: could not build PDF for notification email: ${built.error}`)
+    }
+  } catch (e) {
+    console.error(`Invoice ${number}: notification email failed`, e)
+  }
+
   return NextResponse.json({ invoice: updated })
 }

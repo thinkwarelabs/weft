@@ -6,8 +6,11 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Thinkware Invoice',
+  title: 'Thinkwarelabs Invoice',
   description: 'Internal invoicing tool for Thinkware Labs',
+  icons: {
+    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

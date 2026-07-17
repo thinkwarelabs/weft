@@ -16,13 +16,15 @@ export function ClientPicker({ clients, value, onChange, onClientAdded, error }:
   return (
     <div>
       <div className="flex gap-2">
-        <Select value={value} onChange={(e) => onChange(e.target.value)}>
-          <option value="">Select a client…</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </Select>
-        <Button type="button" variant="secondary" onClick={() => setOpen(true)}>New client</Button>
+        <Select
+          value={value}
+          onChange={onChange}
+          placeholder="Select a client…"
+          options={clients.map((c) => ({ value: c.id, label: c.name }))}
+        />
+        <Button type="button" variant="secondary" className="shrink-0 whitespace-nowrap" onClick={() => setOpen(true)}>
+          New client
+        </Button>
       </div>
       {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
       <ClientFormModal

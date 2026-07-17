@@ -35,7 +35,6 @@ export interface PdfParty {
   bank_name?: string | null
   bank_account_number?: string | null
   bank_ifsc?: string | null
-  bank_swift?: string | null
 }
 
 export interface InvoicePdfData {
@@ -70,7 +69,7 @@ const s = StyleSheet.create({
   billToLabel: { fontWeight: 600, marginBottom: 2 },
   banner: { marginTop: 30, fontSize: 15, fontWeight: 600, letterSpacing: -0.2 },
   payLink: { marginTop: 10, color: '#4353ff', textDecoration: 'underline' },
-  legal: { marginTop: 14, gap: 2.5, color: '#3f3f46' },
+  legal: { marginTop: 6, gap: 2.5, color: '#3f3f46' },
   table: { marginTop: 26 },
   thead: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#18181b', paddingBottom: 5, color: '#52525b' },
   tr: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 0.5, borderBottomColor: '#e4e4e7' },
@@ -104,7 +103,6 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
     ['Bank', data.business.bank_name],
     ['Account number', data.business.bank_account_number],
     ['IFSC', data.business.bank_ifsc],
-    ['SWIFT', data.business.bank_swift],
   ]
   const hasBank = bank.some(([, v]) => v)
 
@@ -130,11 +128,13 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           <View style={s.party}>
             <Text style={s.partyName}>{data.business.company_name}</Text>
             {partyLines(data.business).map((l, i) => <Text key={i}>{l}</Text>)}
+            {/* {data.business.tax_id && <Text>GSTIN : {data.business.tax_id}</Text>} */}
           </View>
           <View style={s.party}>
             <Text style={s.billToLabel}>Bill to</Text>
             <Text>{data.client.name}</Text>
             {partyLines(data.client).map((l, i) => <Text key={i}>{l}</Text>)}
+            {data.client.tax_id && <Text>GSTIN : {data.client.tax_id}</Text>}
           </View>
         </View>
 
@@ -146,7 +146,8 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
 
         {(data.business.tax_id || data.business.legal_note) && (
           <View style={s.legal}>
-            {data.business.tax_id && <Text>{data.business.company_name} tax ID: {data.business.tax_id}</Text>}
+            {data.business.tax_id && <Text>{data.business.company_name} GSTIN : {data.business.tax_id}</Text>}
+            {/* {data.business.tax_id && <Text>GSTIN : {data.business.tax_id}</Text>} */}
             {data.business.legal_note && <Text>{data.business.legal_note}</Text>}
           </View>
         )}

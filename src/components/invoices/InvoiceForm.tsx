@@ -3,6 +3,7 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { DatePicker } from '@/components/ui/DatePicker'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -262,17 +263,17 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Issue date" error={errors.issue_date}>
-                <Input type="date" value={form.issue_date} onChange={set('issue_date')} />
+                <DatePicker value={form.issue_date} onChange={(d) => setForm((f) => ({ ...f, issue_date: d }))} />
               </Field>
               <Field label="Due date" error={errors.due_date}>
-                <Input type="date" value={form.due_date} onChange={set('due_date')} />
+                <DatePicker value={form.due_date} onChange={(d) => setForm((f) => ({ ...f, due_date: d }))} />
               </Field>
               <Field label="Currency" error={errors.currency}>
-                <Select value={form.currency} onChange={set('currency')}>
-                  {CURRENCIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </Select>
+                <Select
+                  value={form.currency}
+                  onChange={(v) => setForm((f) => ({ ...f, currency: v }))}
+                  options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+                />
               </Field>
               <Field label="Tax rate %" error={errors.tax_rate}>
                 <Input type="number" step="0.01" min="0" max="100" value={form.tax_rate} onChange={set('tax_rate')} />
@@ -286,6 +287,13 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
 
         <Card title="Line items">
           <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-12 gap-2 text-[13px] font-medium text-zinc-500">
+              <span className="col-span-5">Description</span>
+              <span className="col-span-3">Period</span>
+              <span className="col-span-1">Qty</span>
+              <span className="col-span-2">Unit price</span>
+              <span className="col-span-1" />
+            </div>
             {form.items.map((row) => (
               <div key={row.key} className="grid grid-cols-12 gap-2">
                 <Input
