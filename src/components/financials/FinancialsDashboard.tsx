@@ -243,7 +243,7 @@ export function FinancialsDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {SUMMARY_CARDS.map((c) => (
               <Card key={c.field}>
                 <p className="text-xs uppercase tracking-wide text-zinc-500">{c.label}</p>

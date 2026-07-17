@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gstBreakdown, isIntraState } from './gst'
+import { gstBreakdown, isExport, isIntraState, placeOfSupply } from './gst'
 
 describe('isIntraState', () => {
   it('same Indian state → intra-state', () => {
@@ -19,6 +19,29 @@ describe('isIntraState', () => {
   })
   it('blank states fall back to inter-state', () => {
     expect(isIntraState({ state: '', country: 'India' }, { state: '', country: 'India' })).toBe(false)
+  })
+})
+
+describe('isExport', () => {
+  it('foreign client → export', () => {
+    expect(isExport({ country: 'India' }, { country: 'United States' })).toBe(true)
+  })
+  it('domestic and blank-country clients are not exports', () => {
+    expect(isExport({ country: 'India' }, { country: 'India' })).toBe(false)
+    expect(isExport({ country: '' }, { country: null })).toBe(false)
+  })
+})
+
+describe('placeOfSupply', () => {
+  it('prefers the state code from the client GSTIN', () => {
+    expect(placeOfSupply({ state: 'Karnataka', country: 'India', tax_id: '29AACCA1234K1Z9' })).toBe('Karnataka (29)')
+  })
+  it('falls back to the state-name lookup', () => {
+    expect(placeOfSupply({ state: 'Tamil Nadu', country: 'India', tax_id: '' })).toBe('Tamil Nadu (33)')
+  })
+  it('unknown state prints without a code; blank state is null', () => {
+    expect(placeOfSupply({ state: 'Atlantis', country: 'India' })).toBe('Atlantis')
+    expect(placeOfSupply({ state: '', country: 'India' })).toBeNull()
   })
 })
 

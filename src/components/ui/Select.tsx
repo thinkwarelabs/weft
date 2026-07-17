@@ -124,7 +124,7 @@ export function Select({ value, onChange, options, placeholder = 'Select…', cl
               role="option"
               aria-selected={option.value === value}
               onMouseEnter={() => setHighlighted(i)}
-              onClick={() => pick(option)}
+              onClick={(e) => { e.preventDefault(); pick(option) }}
               className={cn(
                 'flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-700 transition-colors',
                 i === highlighted && 'bg-zinc-100 text-zinc-900'

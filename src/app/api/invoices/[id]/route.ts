@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { invoiceInput } from '@/lib/validation'
-import { computeTotals, lineAmount, preTaxUnitPrice } from '@/lib/money'
+import { computeTotals, lineBreakdown, preTaxUnitPrice } from '@/lib/money'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -29,14 +29,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return NextResponse.json({ error: 'Invalid input', issues: parsed.error.flatten().fieldErrors }, { status: 400 })
   }
   const { items: enteredItems, ...inv } = parsed.data
-  // unit_price arrives as typed; when gst_included it contains GST, so the
-  // stored pre-tax price is back-calculated before any totals are computed.
-  const items = enteredItems.map((it) => ({
-    ...it,
-    entered_unit_price: it.unit_price,
-    unit_price: preTaxUnitPrice(it.unit_price, it.gst_included, inv.tax_rate),
-  }))
-  const totals = computeTotals(items, inv.tax_rate)
+  // Totals are computed from the ENTERED prices: computeTotals splits tax per
+  // line, so a GST-inclusive line sums back to exactly what was typed.
+  const totals = computeTotals(enteredItems, inv.tax_rate)
 
   const { data: invoice, error } = await db
     .from('invoices')
@@ -56,15 +51,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   await db.from('invoice_items').delete().eq('invoice_id', id)
-  const rows = items.map((it, i) => ({
+  const rows = enteredItems.map((it, i) => ({
     invoice_id: id,
     description: it.description,
     period: it.period || null,
     qty: it.qty,
-    unit_price: it.unit_price,
+    unit_price: preTaxUnitPrice(it.unit_price, it.gst_included, inv.tax_rate),
     gst_included: it.gst_included,
-    entered_unit_price: it.entered_unit_price,
-    amount: lineAmount(it.qty, it.unit_price),
+    entered_unit_price: it.unit_price,
+    // Same per-line net used by computeTotals, so line amounts sum to subtotal.
+    amount: lineBreakdown(it, inv.tax_rate).net,
     sort_order: i,
   }))
   const { error: itemsError } = await db.from('invoice_items').insert(rows)

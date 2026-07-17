@@ -60,7 +60,9 @@ export const settingsInput = z.object({
   bank_account_number: optionalText,
   bank_ifsc: optionalText,
   bank_swift: optionalText,
-  invoice_prefix: z.string().trim().regex(/^[A-Za-z0-9]{1,8}$/, '1-8 letters/digits').transform((s) => s.toUpperCase()),
+  invoice_prefix: z.string().trim()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,15}$/, '1-16 letters/digits/hyphens, must start with a letter or digit')
+    .transform((s) => s.toUpperCase().replace(/-+$/, '')),
   default_currency: z.string().length(3),
   default_tax_label: optionalText,
   default_tax_rate: z.number().min(0).max(100),

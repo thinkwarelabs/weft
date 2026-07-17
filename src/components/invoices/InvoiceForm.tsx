@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { useToast } from '@/components/ui/Toast'
 import { ClientPicker } from '@/components/invoices/ClientPicker'
 import { gstBreakdown, isIntraState } from '@/lib/gst'
-import { computeTotals, formatMoney, preTaxUnitPrice } from '@/lib/money'
+import { computeTotals, formatMoney } from '@/lib/money'
 import { todayISO } from '@/lib/dates'
 import { BusinessProfile, Client, Invoice, InvoiceItem } from '@/lib/types'
 
@@ -255,7 +255,8 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
   const taxRate = Number(form.tax_rate) || 0
   const parsedItems = form.items.map((r) => ({
     qty: Number(r.qty) || 0,
-    unit_price: preTaxUnitPrice(Number(r.unit_price) || 0, r.gst_included, taxRate),
+    unit_price: Number(r.unit_price) || 0,
+    gst_included: r.gst_included,
   }))
   const totals = computeTotals(parsedItems, taxRate)
   const selectedClient = clients.find((c) => c.id === form.client_id)

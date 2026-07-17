@@ -52,4 +52,12 @@ describe('settingsInput', () => {
     expect(settingsInput.safeParse({ company_name: 'TWL', invoice_prefix: 'bad prefix!', default_currency: 'USD', default_tax_rate: 18 }).success).toBe(false)
     expect(settingsInput.safeParse({ company_name: 'TWL', invoice_prefix: 'TWL', default_currency: 'USD', default_tax_rate: 101 }).success).toBe(false)
   })
+
+  it('allows hyphenated prefixes and strips trailing hyphens', () => {
+    const ok = settingsInput.safeParse({ company_name: 'TWL', invoice_prefix: 'TWL-2627-', default_currency: 'USD', default_tax_rate: 18 })
+    expect(ok.success).toBe(true)
+    if (ok.success) expect(ok.data.invoice_prefix).toBe('TWL-2627')
+    expect(settingsInput.safeParse({ company_name: 'TWL', invoice_prefix: '-TWL', default_currency: 'USD', default_tax_rate: 18 }).success).toBe(false)
+    expect(settingsInput.safeParse({ company_name: 'TWL', invoice_prefix: 'A'.repeat(17), default_currency: 'USD', default_tax_rate: 18 }).success).toBe(false)
+  })
 })

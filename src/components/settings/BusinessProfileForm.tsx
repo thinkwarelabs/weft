@@ -99,9 +99,9 @@ export function BusinessProfileForm() {
           </Field>
           <Field label="Legal note" error={errors.legal_note} className="col-span-2">
             <Textarea
-              value={form.legal_note}
+              value={form.legal_note ?? ''}
               onChange={set('legal_note')}
-              placeholder="e.g. Registered person liable for GST/VAT under reverse charge."
+              placeholder="Optional note printed on invoices"
             />
           </Field>
         </div>

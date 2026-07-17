@@ -17,7 +17,11 @@ export function PeriodSelector({ sel, onChange }: { sel: PeriodSel; onChange: (s
       const { from, to } = periodRange(sel)
       onChange({ granularity: 'custom', year: sel.year, index: 0, from, to })
     } else {
-      onChange({ granularity: g, year: sel.year, index: 0 })
+      // Land on the period that contains today, not January/Q1/H1.
+      const now = new Date()
+      const m = now.getMonth()
+      const index = g === 'month' ? m : g === 'quarter' ? Math.floor(m / 3) : Math.floor(m / 6)
+      onChange({ granularity: g, year: now.getFullYear(), index })
     }
   }
 

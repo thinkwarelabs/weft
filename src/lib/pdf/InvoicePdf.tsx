@@ -1,8 +1,8 @@
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { gstBreakdown, isIntraState } from '@/lib/gst'
-import { formatMoney, round2 } from '@/lib/money'
+import { gstBreakdown, isExport, isIntraState, placeOfSupply } from '@/lib/gst'
+import { formatMoney } from '@/lib/money'
 import { formatDateLong } from '@/lib/dates'
 
 const fontsDir = path.join(process.cwd(), 'src/lib/pdf/fonts')
@@ -66,8 +66,9 @@ const s = StyleSheet.create({
   metaLabel: { width: 90, fontWeight: 600 },
   parties: { flexDirection: 'row', marginTop: 26, gap: 60 },
   party: { width: 220, gap: 2.5 },
-  partyName: { fontWeight: 600, marginBottom: 2 },
+  partyName: { fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' },
   billToLabel: { fontWeight: 600, marginBottom: 2 },
+  clientName: { textTransform: 'uppercase' },
   banner: { marginTop: 30, fontSize: 15, fontWeight: 600, letterSpacing: -0.2 },
   payLink: { marginTop: 10, color: '#4353ff', textDecoration: 'underline' },
   legal: { marginTop: 6, gap: 2.5, color: '#3f3f46' },
@@ -88,7 +89,7 @@ const s = StyleSheet.create({
   bankRow: { flexDirection: 'row' },
   bankLabel: { width: 130, color: '#52525b' },
   notes: { marginTop: 22, color: '#3f3f46' },
-  footer: { position: 'absolute', bottom: 24, left: 44, right: 44, borderTopWidth: 0.5, borderTopColor: '#e4e4e7', paddingTop: 8, color: '#71717a', fontSize: 8, textAlign: 'right' },
+  footer: { position: 'absolute', bottom: 24, left: 44, right: 44, borderTopWidth: 0.5, borderTopColor: '#e4e4e7', paddingTop: 8, color: '#71717a', fontSize: 8, flexDirection: 'row', justifyContent: 'space-between' },
 })
 
 function partyLines(p: PdfParty): string[] {
@@ -99,6 +100,11 @@ function partyLines(p: PdfParty): string[] {
 
 export function InvoicePdf({ data }: { data: InvoicePdfData }) {
   const fm = (n: number) => formatMoney(n, data.currency)
+  const exportInvoice = isExport(data.business, data.client)
+  // Domestic invoices charging GST are "Tax Invoice" per Rule 46 wording;
+  // exports and 0%-tax invoices stay plain "Invoice".
+  const isTaxInvoice = !exportInvoice && data.taxRate > 0
+  const pos = isTaxInvoice ? placeOfSupply(data.client) : null
   const bank: [string, string | null | undefined][] = [
     ['Account holder', data.business.bank_account_name],
     ['Bank', data.business.bank_name],
@@ -111,7 +117,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
     <Document title={`Invoice ${data.number}`}>
       <Page size="A4" style={s.page}>
         <View style={s.headerRow}>
-          <Text style={s.title}>Invoice</Text>
+          <Text style={s.title}>{isTaxInvoice ? 'Tax Invoice' : 'Invoice'}</Text>
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image style={s.logo} src={logoSrc} />
         </View>
@@ -120,6 +126,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           <View style={s.metaRow}><Text style={s.metaLabel}>Invoice number</Text><Text>{data.number}</Text></View>
           <View style={s.metaRow}><Text style={s.metaLabel}>Date of issue</Text><Text>{formatDateLong(data.issueDate)}</Text></View>
           <View style={s.metaRow}><Text style={s.metaLabel}>Date due</Text><Text>{formatDateLong(data.dueDate)}</Text></View>
+          {pos && <View style={s.metaRow}><Text style={s.metaLabel}>Place of supply</Text><Text>{pos}</Text></View>}
           {data.cancelled && (
             <View style={s.metaRow}><Text style={s.metaLabel}>Status</Text><Text style={{ fontWeight: 700 }}>CANCELLED</Text></View>
           )}
@@ -133,7 +140,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           </View>
           <View style={s.party}>
             <Text style={s.billToLabel}>Bill to</Text>
-            <Text>{data.client.name}</Text>
+            <Text style={s.clientName}>{data.client.name}</Text>
             {partyLines(data.client).map((l, i) => <Text key={i}>{l}</Text>)}
             {data.client.tax_id && <Text>GSTIN : {data.client.tax_id}</Text>}
           </View>
@@ -147,8 +154,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
 
         {(data.business.tax_id || data.business.legal_note) && (
           <View style={s.legal}>
-            {data.business.tax_id && <Text>{data.business.company_name} GSTIN : {data.business.tax_id}</Text>}
-            {/* {data.business.tax_id && <Text>GSTIN : {data.business.tax_id}</Text>} */}
+            {data.business.tax_id && <Text>{(data.business.company_name ?? '').toUpperCase()} GSTIN : {data.business.tax_id}</Text>}
             {data.business.legal_note && <Text>{data.business.legal_note}</Text>}
           </View>
         )}
@@ -170,7 +176,8 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
               <Text style={s.colQty}>{it.qty}</Text>
               <Text style={s.colPrice}>{fm(it.unitPrice)}</Text>
               <Text style={s.colTax}>{data.taxRate > 0 ? `${data.taxRate}%` : '—'}</Text>
-              <Text style={s.colAmount}>{fm(round2(it.amount * (1 + data.taxRate / 100)))}</Text>
+              {/* Tax-inclusive line total (see buildInvoicePdf): the column sums exactly to Total. */}
+              <Text style={s.colAmount}>{fm(it.amount)}</Text>
             </View>
           ))}
         </View>
@@ -204,7 +211,10 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
 
         {data.notes && <Text style={s.notes}>{data.notes}</Text>}
 
-        <Text style={s.footer} fixed render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+        <View style={s.footer} fixed>
+          <Text>This is a computer-generated invoice and does not require a signature.</Text>
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+        </View>
       </Page>
     </Document>
   )

@@ -13,7 +13,6 @@ const sample: InvoicePdfData = {
     city: 'Covina', state: 'California', postal_code: '91723', country: 'United States',
     email: 'contact@gomagentic.com', phone: null,
     tax_id: '9926USA29034OS9',
-    legal_note: 'Registered person liable for GST/VAT under reverse charge.',
     bank_account_name: 'Thinkware Labs', bank_name: 'HDFC Bank',
     bank_account_number: '1234567890', bank_ifsc: 'HDFC0000001',
   },
@@ -45,7 +44,7 @@ describe('InvoicePdf', () => {
       ...sample,
       number: 'DRAFT',
       taxLabel: null, taxRate: 0, taxAmount: 0, total: 20,
-      business: { ...sample.business, tax_id: null, legal_note: null, bank_account_name: null, bank_name: null, bank_account_number: null, bank_ifsc: null },
+      business: { ...sample.business, tax_id: null, bank_account_name: null, bank_name: null, bank_account_number: null, bank_ifsc: null },
     }
     const buf = await renderToBuffer(InvoicePdf({ data: minimal }))
     expect(buf.subarray(0, 5).toString()).toBe('%PDF-')

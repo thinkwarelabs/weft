@@ -9,7 +9,6 @@ export async function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-zinc-200 bg-white">
         <div className="flex items-center gap-2.5 px-6 py-6">
-          {/* <Image src="/logo-latest.png" alt="" width={28} height={28} className="shrink-0 rounded-full" priority /> */}
           <Image src="/logo.png" alt="Thinkware Labs" width={150} height={18} priority />
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">

@@ -1,6 +1,7 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { db } from '@/lib/supabase'
 import { InvoicePdf, InvoicePdfData, PdfParty } from '@/lib/pdf/InvoicePdf'
+import { lineBreakdown } from '@/lib/money'
 import { BusinessProfile, Client, Invoice, InvoiceItem } from '@/lib/types'
 
 export type BuiltInvoicePdf =
@@ -42,7 +43,17 @@ export async function buildInvoicePdf(id: string): Promise<BuiltInvoicePdf> {
       period: it.period,
       qty: Number(it.qty),
       unitPrice: Number(it.unit_price),
-      amount: Number(it.amount),
+      // Amount column shows the tax-inclusive line total (the column sums to
+      // the invoice Total). Recomputed from the entered price so an inclusive
+      // line lands exactly on what was typed.
+      amount: lineBreakdown(
+        {
+          qty: Number(it.qty),
+          unit_price: Number(it.entered_unit_price ?? it.unit_price),
+          gst_included: it.gst_included,
+        },
+        Number(invoice.tax_rate)
+      ).gross,
     })),
     subtotal: Number(invoice.subtotal),
     taxAmount: Number(invoice.tax_amount),
