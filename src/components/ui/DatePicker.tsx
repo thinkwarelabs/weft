@@ -117,7 +117,7 @@ export function DatePicker({ value, onChange, className, disabled }: {
         <div
           role="dialog"
           aria-label="Choose date"
-          className="dropdown-panel absolute z-30 mt-1.5 w-64 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg"
+          className="dropdown-panel absolute z-30 mt-1.5 w-72 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg"
         >
           <div className="mb-2 flex items-center justify-between">
             <span className="px-1 text-sm font-medium">
@@ -142,9 +142,9 @@ export function DatePicker({ value, onChange, className, disabled }: {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-y-0.5 text-center">
+          <div className="grid grid-cols-7 gap-1 text-center">
             {WEEKDAYS.map((d) => (
-              <span key={d} className="py-1 text-xs font-medium text-zinc-400">{d}</span>
+              <span key={d} className="pb-1.5 text-xs font-medium text-zinc-400">{d}</span>
             ))}
             {grid.map((cell) => {
               const isSelected = cell.iso === value
@@ -156,13 +156,15 @@ export function DatePicker({ value, onChange, className, disabled }: {
                   onClick={() => pick(cell.iso)}
                   aria-label={cell.iso}
                   aria-pressed={isSelected}
+                  aria-current={isToday ? 'date' : undefined}
                   className={cn(
-                    'mx-auto flex size-8 cursor-pointer items-center justify-center rounded-md text-sm transition-colors',
-                    cell.inMonth ? 'text-zinc-700' : 'text-zinc-300',
+                    'mx-auto flex size-8 cursor-pointer items-center justify-center rounded-lg text-sm transition-colors',
                     isSelected
-                      ? 'bg-zinc-900 font-medium text-white hover:bg-zinc-700'
-                      : 'hover:bg-zinc-100 hover:text-zinc-900',
-                    isToday && !isSelected && 'font-semibold text-zinc-900 underline decoration-zinc-400 underline-offset-4'
+                      ? 'bg-zinc-900 font-semibold text-white hover:bg-zinc-700'
+                      : cell.inMonth
+                        ? 'text-zinc-700 hover:bg-zinc-100'
+                        : 'text-zinc-300 hover:bg-zinc-50',
+                    isToday && !isSelected && 'font-semibold text-zinc-900 ring-1 ring-inset ring-zinc-300'
                   )}
                 >
                   {cell.day}
