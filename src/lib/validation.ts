@@ -21,6 +21,7 @@ export const invoiceItemInput = z.object({
   period: optionalText,
   qty: z.number().positive('Qty must be > 0'),
   unit_price: z.number().min(0, 'Price must be >= 0'),
+  gst_included: z.boolean().default(true),
 })
 
 export const invoiceInput = z.object({

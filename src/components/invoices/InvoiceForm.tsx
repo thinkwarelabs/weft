@@ -11,7 +11,8 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Textarea } from '@/components/ui/Textarea'
 import { useToast } from '@/components/ui/Toast'
 import { ClientPicker } from '@/components/invoices/ClientPicker'
-import { computeTotals, formatMoney } from '@/lib/money'
+import { gstBreakdown, isIntraState } from '@/lib/gst'
+import { computeTotals, formatMoney, preTaxUnitPrice } from '@/lib/money'
 import { todayISO } from '@/lib/dates'
 import { BusinessProfile, Client, Invoice, InvoiceItem } from '@/lib/types'
 
@@ -23,6 +24,7 @@ interface ItemRow {
   period: string
   qty: string
   unit_price: string
+  gst_included: boolean
 }
 
 interface FormState {
@@ -38,7 +40,7 @@ interface FormState {
 }
 
 function makeRow(key: number): ItemRow {
-  return { key, description: '', period: '', qty: '1', unit_price: '' }
+  return { key, description: '', period: '', qty: '1', unit_price: '', gst_included: true }
 }
 
 export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
@@ -61,6 +63,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<'draft' | 'finalize' | null>(null)
+  const [businessLoc, setBusinessLoc] = useState<{ state: string; country: string }>({ state: '', country: '' })
 
   useEffect(() => {
     let active = true
@@ -75,6 +78,10 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
         const clientsData = await clientsRes.json()
         if (!active) return
         setClients(clientsData.clients ?? [])
+        setBusinessLoc({
+          state: settingsData.profile?.state ?? '',
+          country: settingsData.profile?.country ?? '',
+        })
 
         if (invoiceRes) {
           const invoiceData = await invoiceRes.json()
@@ -100,7 +107,8 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                     description: it.description,
                     period: it.period ?? '',
                     qty: String(Number(it.qty)),
-                    unit_price: String(Number(it.unit_price)),
+                    unit_price: String(Number(it.entered_unit_price ?? it.unit_price)),
+                    gst_included: Boolean(it.gst_included),
                   }))
                 : [makeRow(nextKey.current++)],
           })
@@ -189,6 +197,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
           period: r.period.trim(),
           qty: Number(r.qty),
           unit_price: Number(r.unit_price),
+          gst_included: r.gst_included,
         })),
     }
   }
@@ -243,9 +252,14 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     }
   }
 
-  const parsedItems = form.items.map((r) => ({ qty: Number(r.qty) || 0, unit_price: Number(r.unit_price) || 0 }))
   const taxRate = Number(form.tax_rate) || 0
+  const parsedItems = form.items.map((r) => ({
+    qty: Number(r.qty) || 0,
+    unit_price: preTaxUnitPrice(Number(r.unit_price) || 0, r.gst_included, taxRate),
+  }))
   const totals = computeTotals(parsedItems, taxRate)
+  const selectedClient = clients.find((c) => c.id === form.client_id)
+  const gstRows = gstBreakdown(taxRate, totals.taxAmount, selectedClient ? isIntraState(businessLoc, selectedClient) : false)
 
   return (
     <div className="flex gap-8">
@@ -288,16 +302,17 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
         <Card title="Line items">
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-12 gap-2 text-[13px] font-medium text-zinc-500">
-              <span className="col-span-5">Description</span>
+              <span className="col-span-4">Description</span>
               <span className="col-span-3">Period</span>
               <span className="col-span-1">Qty</span>
               <span className="col-span-2">Unit price</span>
+              <span className="col-span-1 text-center" title="Unit price includes GST">GST incl.</span>
               <span className="col-span-1" />
             </div>
             {form.items.map((row) => (
               <div key={row.key} className="grid grid-cols-12 gap-2">
                 <Input
-                  className="col-span-5"
+                  className="col-span-4"
                   placeholder="Description"
                   value={row.description}
                   onChange={(e) => updateItem(row.key, { description: e.target.value })}
@@ -320,6 +335,15 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                   value={row.unit_price}
                   onChange={(e) => updateItem(row.key, { unit_price: e.target.value })}
                 />
+                <label className="col-span-1 flex cursor-pointer items-center justify-center" title="Unit price includes GST">
+                  <input
+                    type="checkbox"
+                    className="size-4 cursor-pointer accent-zinc-900"
+                    checked={row.gst_included}
+                    onChange={(e) => updateItem(row.key, { gst_included: e.target.checked })}
+                    aria-label="Unit price includes GST"
+                  />
+                </label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -362,10 +386,19 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
               <span className="text-zinc-500">Subtotal</span>
               <span>{formatMoney(totals.subtotal, form.currency)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">{form.tax_label || 'Tax'} ({taxRate}%)</span>
-              <span>{formatMoney(totals.taxAmount, form.currency)}</span>
-            </div>
+            {gstRows.length > 0 ? (
+              gstRows.map((r) => (
+                <div key={r.label} className="flex justify-between">
+                  <span className="text-zinc-500">{r.label} ({r.rate}%)</span>
+                  <span>{formatMoney(r.amount, form.currency)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">{form.tax_label || 'Tax'} ({taxRate}%)</span>
+                <span>{formatMoney(totals.taxAmount, form.currency)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
               <span>Total</span>
               <span>{formatMoney(totals.total, form.currency)}</span>

@@ -6,6 +6,12 @@ export function lineAmount(qty: number, unitPrice: number): number {
   return round2(qty * unitPrice)
 }
 
+// A "GST included" price is converted to its pre-tax equivalent at full
+// precision — rounding happens later, per line, in lineAmount.
+export function preTaxUnitPrice(unitPrice: number, gstIncluded: boolean, taxRate: number): number {
+  return gstIncluded ? unitPrice / (1 + taxRate / 100) : unitPrice
+}
+
 export interface Totals {
   subtotal: number
   taxAmount: number

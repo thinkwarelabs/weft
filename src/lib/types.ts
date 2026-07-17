@@ -73,6 +73,8 @@ export interface InvoiceItem {
   period: string | null
   qty: number
   unit_price: number
+  gst_included: boolean
+  entered_unit_price: number | null
   amount: number
   sort_order: number
 }

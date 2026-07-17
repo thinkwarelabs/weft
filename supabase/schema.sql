@@ -55,6 +55,8 @@ create table if not exists invoice_items (
   period text,
   qty numeric not null default 1,
   unit_price numeric not null default 0,
+  gst_included boolean not null default true,
+  entered_unit_price numeric,
   amount numeric not null default 0,
   sort_order int not null default 0
 );

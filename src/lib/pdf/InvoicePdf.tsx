@@ -1,7 +1,8 @@
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { formatMoney } from '@/lib/money'
+import { gstBreakdown, isIntraState } from '@/lib/gst'
+import { formatMoney, round2 } from '@/lib/money'
 import { formatDateLong } from '@/lib/dates'
 
 const fontsDir = path.join(process.cwd(), 'src/lib/pdf/fonts')
@@ -169,20 +170,19 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
               <Text style={s.colQty}>{it.qty}</Text>
               <Text style={s.colPrice}>{fm(it.unitPrice)}</Text>
               <Text style={s.colTax}>{data.taxRate > 0 ? `${data.taxRate}%` : '—'}</Text>
-              <Text style={s.colAmount}>{fm(it.amount)}</Text>
+              <Text style={s.colAmount}>{fm(round2(it.amount * (1 + data.taxRate / 100)))}</Text>
             </View>
           ))}
         </View>
 
         <View style={s.totals}>
           <View style={s.totalRow}><Text>Subtotal</Text><Text>{fm(data.subtotal)}</Text></View>
-          <View style={s.totalRow}><Text>Total excluding tax</Text><Text>{fm(data.subtotal)}</Text></View>
-          {data.taxRate > 0 && (
-            <View style={s.totalRow}>
-              <Text>{data.taxLabel || 'Tax'} ({data.taxRate}% on {fm(data.subtotal)})</Text>
-              <Text>{fm(data.taxAmount)}</Text>
+          {gstBreakdown(data.taxRate, data.taxAmount, isIntraState(data.business, data.client)).map((r) => (
+            <View key={r.label} style={s.totalRow}>
+              <Text>{r.label} ({r.rate}% on {fm(data.subtotal)})</Text>
+              <Text>{fm(r.amount)}</Text>
             </View>
-          )}
+          ))}
           <View style={s.totalRow}><Text>Total</Text><Text>{fm(data.total)}</Text></View>
           <View style={[s.totalRow, { borderBottomWidth: 0 }]}>
             <Text style={s.totalStrong}>Amount due</Text>
