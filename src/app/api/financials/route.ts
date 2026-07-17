@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
   const { data: invoiceRows, error: invoiceError } = await db
     .from('invoices')
-    .select('id, invoice_number, currency, subtotal, tax_amount, total, paid_at, updated_at, clients(name)')
+    .select('id, invoice_number, currency, subtotal, tax_amount, total, amount_received, tds_amount, paid_at, updated_at, clients(name)')
     .eq('status', 'paid')
   if (invoiceError) return NextResponse.json({ error: invoiceError.message }, { status: 500 })
 
