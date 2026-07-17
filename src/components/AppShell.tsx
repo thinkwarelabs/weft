@@ -2,9 +2,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ReactNode } from 'react'
 import { auth, signOut } from '@/auth'
+import { isAuditAdmin } from '@/lib/allowlist'
 
 export async function AppShell({ children }: { children: ReactNode }) {
   const session = await auth()
+  const showAudit = isAuditAdmin(session?.user?.email)
   return (
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-zinc-200 bg-white">
@@ -24,6 +26,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
           <Link href="/settings" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
             Business profile
           </Link>
+          {showAudit && (
+            <Link href="/audit" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
+              Audit log
+            </Link>
+          )}
         </nav>
         <div className="flex items-center justify-between gap-2 border-t border-zinc-100 px-4 py-4">
           <div className="flex min-w-0 items-center gap-2.5">

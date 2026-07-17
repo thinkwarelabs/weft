@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
+import { logAudit } from '@/lib/audit'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -24,5 +25,6 @@ export async function POST(_req: Request, { params }: Ctx) {
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'invoice.unmark_paid', entityType: 'invoice', entityId: id, metadata: { invoice_number: invoice.invoice_number } })
   return NextResponse.json({ invoice })
 }

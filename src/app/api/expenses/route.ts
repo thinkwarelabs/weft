@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { expenseInput } from '@/lib/validation'
+import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   const { data, error } = await db.from('expenses').select('*').order('expense_date', { ascending: false })
@@ -25,5 +26,6 @@ export async function POST(req: Request) {
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'expense.create', entityType: 'expense', entityId: data.id, metadata: { amount: data.amount, expense_type: data.expense_type } })
   return NextResponse.json({ expense: data }, { status: 201 })
 }

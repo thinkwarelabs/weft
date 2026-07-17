@@ -26,6 +26,8 @@ Set the following in `.env.local` (gitignored):
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Google Cloud Console → Credentials → OAuth client |
 | `AUTH_SECRET` | NextAuth session secret | Generate with `openssl rand -base64 32` |
 | `ALLOWED_EMAILS` | Comma-separated list of Gmail addresses allowed to sign in | Configure as needed |
+| `AUDIT_ADMINS` | Comma-separated emails allowed to view the Audit log page (a subset of `ALLOWED_EMAILS`) | Configure as needed |
+| `HEALTHCHECK_KEY` | Shared secret for the public keep-alive endpoint (`GET /api/health?key=…`) | Generate with `openssl rand -hex 24` |
 | `EMAIL_HOST` | SMTP host for invoice notifications | e.g. `smtp.gmail.com` |
 | `EMAIL_PORT` | SMTP port | `587` for STARTTLS, `465` for implicit TLS |
 | `EMAIL_SECURE` | `true` for implicit TLS (port 465), `false` for STARTTLS (port 587) | Match your port |
@@ -44,7 +46,8 @@ When an invoice is finalized, an email with the invoice details, the generating 
 1. Copy the contents of `supabase/schema.sql`.
 2. Open your Supabase project and go to the SQL Editor.
 3. Paste and run the schema to create all tables and functions.
-4. Verify the setup with `node scripts/check-db.mjs`.
+4. Run the incremental migrations in order: `002_financials.sql`, `003_payments_void.sql`, `004_gst_inclusive_items.sql`, `005_audit_logs.sql`.
+5. Verify the setup with `node scripts/check-db.mjs`.
 
 ## Commands
 
@@ -63,6 +66,8 @@ npm run lint      # Run ESLint
 - **Payment Tracking**: Mark finalized invoices as paid.
 - **Business Profile**: Edit your company name, address, bank details, and other information in Settings. These details are printed on the invoice PDF.
 - **Client Management**: Manage client details (name, email, address) in Settings.
+- **Audit Log**: Every write action (invoice, client, expense, and settings changes) is recorded to the `audit_logs` table with the acting user's email, the action, the affected record, and a timestamp. Users listed in `AUDIT_ADMINS` can browse the trail at `/audit` — a paginated, filterable table served with server-side (API-route) pagination.
+- **Keep-alive**: `GET /api/health?key=<HEALTHCHECK_KEY>` is a public endpoint that pings the database to keep a free-tier Supabase project from pausing. Point an uptime monitor (e.g. UptimeRobot) at it on a schedule. It only queries the database when the correct `key` is supplied; without it (or with a wrong key) it does nothing and still returns `{ "success": true }`.
 
 ## Deploying
 

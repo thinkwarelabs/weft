@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { invoiceInput } from '@/lib/validation'
 import { computeTotals, lineBreakdown, preTaxUnitPrice } from '@/lib/money'
+import { logAudit } from '@/lib/audit'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -88,6 +89,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       .eq('id', id)
     return NextResponse.json({ error: itemsError.message }, { status: 500 })
   }
+  await logAudit({ action: 'invoice.update', entityType: 'invoice', entityId: id, metadata: { total: invoice.total, currency: invoice.currency } })
   return NextResponse.json({ invoice })
 }
 
@@ -100,5 +102,6 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   }
   const { error } = await db.from('invoices').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'invoice.delete', entityType: 'invoice', entityId: id })
   return NextResponse.json({ ok: true })
 }

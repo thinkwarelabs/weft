@@ -49,7 +49,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
   const nextKey = useRef(1)
 
   const [loading, setLoading] = useState(true)
-  const [clients, setClients] = useState<Client[]>([])
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [form, setForm] = useState<FormState>({
     client_id: '',
     issue_date: todayISO(),
@@ -69,15 +69,12 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     let active = true
     async function init() {
       try {
-        const [settingsRes, clientsRes, invoiceRes] = await Promise.all([
+        const [settingsRes, invoiceRes] = await Promise.all([
           fetch('/api/settings'),
-          fetch('/api/clients'),
           invoiceId ? fetch(`/api/invoices/${invoiceId}`) : Promise.resolve(null),
         ])
         const settingsData = await settingsRes.json()
-        const clientsData = await clientsRes.json()
         if (!active) return
-        setClients(clientsData.clients ?? [])
         setBusinessLoc({
           state: settingsData.profile?.state ?? '',
           country: settingsData.profile?.country ?? '',
@@ -90,6 +87,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
             router.replace(`/invoices/${invoiceId}`)
             return
           }
+          setSelectedClient(invoiceData.client ?? null)
           const items: InvoiceItem[] = invoiceData.items ?? []
           setForm({
             client_id: invoiceData.invoice.client_id,
@@ -259,7 +257,6 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     gst_included: r.gst_included,
   }))
   const totals = computeTotals(parsedItems, taxRate)
-  const selectedClient = clients.find((c) => c.id === form.client_id)
   const gstRows = gstBreakdown(taxRate, totals.taxAmount, selectedClient ? isIntraState(businessLoc, selectedClient) : false)
 
   return (
@@ -269,10 +266,11 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
           <div className="flex flex-col gap-4">
             <Field label="Client">
               <ClientPicker
-                clients={clients}
-                value={form.client_id}
-                onChange={(id) => setForm((f) => ({ ...f, client_id: id }))}
-                onClientAdded={(c) => setClients((cs) => [...cs, c])}
+                selected={selectedClient}
+                onSelect={(c) => {
+                  setSelectedClient(c)
+                  setForm((f) => ({ ...f, client_id: c.id }))
+                }}
                 error={errors.client_id}
               />
             </Field>

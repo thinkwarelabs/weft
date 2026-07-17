@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { paymentInput } from '@/lib/validation'
 import { round2 } from '@/lib/money'
+import { logAudit } from '@/lib/audit'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -38,5 +39,6 @@ export async function POST(req: Request, { params }: Ctx) {
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'invoice.mark_paid', entityType: 'invoice', entityId: id, metadata: { invoice_number: invoice.invoice_number, amount_received, tds_amount } })
   return NextResponse.json({ invoice })
 }

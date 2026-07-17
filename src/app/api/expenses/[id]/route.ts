@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { expensePatchInput } from '@/lib/validation'
+import { logAudit } from '@/lib/audit'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -34,6 +35,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   const { data, error } = await db.from('expenses').update(update).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'expense.update', entityType: 'expense', entityId: id, metadata: { fields: Object.keys(update) } })
   return NextResponse.json({ expense: data })
 }
 
@@ -43,5 +45,6 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   if (!existing) return NextResponse.json({ error: 'Expense not found' }, { status: 404 })
   const { error } = await db.from('expenses').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'expense.delete', entityType: 'expense', entityId: id })
   return NextResponse.json({ ok: true })
 }

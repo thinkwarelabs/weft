@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Pagination } from '@/components/ui/Pagination'
 import { Spinner } from '@/components/ui/Spinner'
 import { useToast } from '@/components/ui/Toast'
+import { pageCount } from '@/lib/pagination'
 import { cn } from '@/lib/cn'
 import { formatDateLong, todayISO } from '@/lib/dates'
 import {
@@ -108,6 +110,12 @@ export function FinancialsDashboard() {
   const [editing, setEditing] = useState<Expense | null>(null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const [allExpenseTypes, setAllExpenseTypes] = useState<string[]>([])
+  // Client-side paging of the two detail tables. The whole period is already
+  // loaded for the aggregate cards, so there is nothing to fetch per page.
+  const [invPage, setInvPage] = useState(1)
+  const [invSize, setInvSize] = useState(25)
+  const [expPage, setExpPage] = useState(1)
+  const [expSize, setExpSize] = useState(25)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -204,6 +212,16 @@ export function FinancialsDashboard() {
     [data]
   )
 
+  // Clamp the current page so a shrinking list (e.g. after deleting an expense)
+  // never lands on an empty page, then slice for display.
+  const invPageCount = pageCount(paidInvoices.length, invSize)
+  const invPageSafe = Math.min(invPage, invPageCount)
+  const paidInvoicesPage = paidInvoices.slice((invPageSafe - 1) * invSize, invPageSafe * invSize)
+
+  const expPageCount = pageCount(expensesSorted.length, expSize)
+  const expPageSafe = Math.min(expPage, expPageCount)
+  const expensesPage = expensesSorted.slice((expPageSafe - 1) * expSize, expPageSafe * expSize)
+
   function openAdd() {
     setEditing(null)
     setModalOpen(true)
@@ -233,7 +251,14 @@ export function FinancialsDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <PeriodSelector sel={sel} onChange={setSel} />
+        <PeriodSelector
+          sel={sel}
+          onChange={(s) => {
+            setSel(s)
+            setInvPage(1)
+            setExpPage(1)
+          }}
+        />
         <Button onClick={openAdd}>Add expense</Button>
       </div>
 
@@ -317,7 +342,7 @@ export function FinancialsDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paidInvoices.map((inv) => (
+                    {paidInvoicesPage.map((inv) => (
                       <tr key={inv.id} className="hover:bg-zinc-50">
                         <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">
                           <Link href={`/invoices/${inv.id}`} className="hover:underline">
@@ -340,6 +365,23 @@ export function FinancialsDashboard() {
                   </tbody>
                 </table>
               </Card>
+            )}
+            {paidInvoices.length > 0 && (
+              <div className="mt-4">
+                <Pagination
+                  page={invPageSafe}
+                  pageCount={invPageCount}
+                  total={paidInvoices.length}
+                  pageSize={invSize}
+                  onPageChange={setInvPage}
+                  onPageSizeChange={(s) => {
+                    setInvSize(s)
+                    setInvPage(1)
+                  }}
+                  singular="invoice"
+                  plural="invoices"
+                />
+              </div>
             )}
           </div>
 
@@ -365,7 +407,7 @@ export function FinancialsDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {expensesSorted.map((e) => (
+                    {expensesPage.map((e) => (
                       <tr key={e.id} className="hover:bg-zinc-50">
                         <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">{e.name}</td>
                         <td className="border-b border-zinc-100 px-4 py-3 text-sm">{e.expense_type ?? '—'}</td>
@@ -391,6 +433,23 @@ export function FinancialsDashboard() {
                   </tbody>
                 </table>
               </Card>
+            )}
+            {expensesSorted.length > 0 && (
+              <div className="mt-4">
+                <Pagination
+                  page={expPageSafe}
+                  pageCount={expPageCount}
+                  total={expensesSorted.length}
+                  pageSize={expSize}
+                  onPageChange={setExpPage}
+                  onPageSizeChange={(s) => {
+                    setExpSize(s)
+                    setExpPage(1)
+                  }}
+                  singular="expense"
+                  plural="expenses"
+                />
+              </div>
             )}
           </div>
         </>

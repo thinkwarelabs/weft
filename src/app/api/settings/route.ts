@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { settingsInput } from '@/lib/validation'
+import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   const { data, error } = await db.from('business_profile').select('*').eq('id', 1).single()
@@ -21,5 +22,6 @@ export async function PATCH(req: Request) {
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'settings.update', entityType: 'settings', entityId: 1, metadata: { fields: Object.keys(parsed.data) } })
   return NextResponse.json({ profile: data })
 }

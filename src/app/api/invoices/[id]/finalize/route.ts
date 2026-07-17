@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { db } from '@/lib/supabase'
 import { sendInvoiceGeneratedEmail } from '@/lib/email'
 import { buildInvoicePdf } from '@/lib/pdf/buildInvoicePdf'
+import { logAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 
@@ -39,6 +40,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await logAudit({ action: 'invoice.finalize', entityType: 'invoice', entityId: id, metadata: { invoice_number: number, total: updated.total } })
 
   // Notify the team by email. A failure here must never undo or fail the
   // finalization itself — the invoice number is already allocated.

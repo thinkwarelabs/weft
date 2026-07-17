@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase'
 import { clientInput } from '@/lib/validation'
+import { logAudit } from '@/lib/audit'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -19,5 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   const { data, error } = await db.from('clients').update(update).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const action = archived !== undefined ? (archived ? 'client.archive' : 'client.unarchive') : 'client.update'
+  await logAudit({ action, entityType: 'client', entityId: id, metadata: { name: data.name } })
   return NextResponse.json({ client: data })
 }

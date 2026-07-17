@@ -10,8 +10,10 @@ const env = Object.fromEntries(
 
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY)
 
-for (const t of ['business_profile', 'clients', 'invoices', 'invoice_items']) {
-  const { error } = await db.from(t).select('*', { head: true, count: 'exact' })
+for (const t of ['business_profile', 'clients', 'invoices', 'invoice_items', 'audit_logs']) {
+  // A real (non-head) select is required: a head+count query returns no error
+  // for a MISSING table (count comes back null), so it silently false-passes.
+  const { error } = await db.from(t).select('*').limit(1)
   if (error) { console.error(`FAIL ${t}: ${error.message}`); process.exit(1) }
   console.log(`OK table ${t}`)
 }
