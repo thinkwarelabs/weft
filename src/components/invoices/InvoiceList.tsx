@@ -13,13 +13,17 @@ import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
 import { formatDateLong } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
-import { InvoiceListRow, InvoiceStatus } from '@/lib/types'
+import { daysOverdue, isOverdue } from '@/lib/overdue'
+import { InvoiceListRow } from '@/lib/types'
+import { RecordPaymentModal } from './RecordPaymentModal'
 
 const TABS = [
   { key: 'all', label: 'All' },
   { key: 'draft', label: 'Draft' },
   { key: 'finalized', label: 'Finalized' },
+  { key: 'overdue', label: 'Overdue' },
   { key: 'paid', label: 'Paid' },
+  { key: 'cancelled', label: 'Cancelled' },
 ] as const
 
 type StatusFilter = (typeof TABS)[number]['key']
@@ -36,6 +40,7 @@ export function InvoiceList() {
   const [q, setQ] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [confirmDelete, setConfirmDelete] = useState<InvoiceListRow | null>(null)
+  const [payingRow, setPayingRow] = useState<InvoiceListRow | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -46,10 +51,13 @@ export function InvoiceList() {
       .catch(() => toast('Failed to load invoices', 'error'))
   }, [toast])
 
-  const outstanding = useMemo(
-    () => sumByCurrency((invoices ?? []).filter((r) => r.status === 'finalized')),
+  const outstandingRows = useMemo(() => (invoices ?? []).filter((r) => r.status === 'finalized'), [invoices])
+  const overdueRows = useMemo(
+    () => (invoices ?? []).filter((r) => isOverdue(r.status, r.due_date)),
     [invoices]
   )
+  const outstanding = useMemo(() => sumByCurrency(outstandingRows), [outstandingRows])
+  const overdueSum = useMemo(() => sumByCurrency(overdueRows), [overdueRows])
   const paidThisMonth = useMemo(() => {
     const now = new Date()
     return sumByCurrency(
@@ -66,26 +74,27 @@ export function InvoiceList() {
   const filtered = useMemo(() => {
     if (!invoices) return []
     const needle = q.trim().toLowerCase()
-    return invoices.filter((r) => {
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false
+    const rows = invoices.filter((r) => {
+      if (statusFilter === 'overdue') {
+        if (!isOverdue(r.status, r.due_date)) return false
+      } else if (statusFilter !== 'all' && r.status !== statusFilter) {
+        return false
+      }
       if (!needle) return true
       const number = (r.invoice_number ?? '').toLowerCase()
       const client = (r.clients?.name ?? '').toLowerCase()
       return number.includes(needle) || client.includes(needle)
     })
-  }, [invoices, q, statusFilter])
-
-  async function markPaid(row: InvoiceListRow) {
-    const res = await fetch(`/api/invoices/${row.id}/mark-paid`, { method: 'POST' })
-    if (res.ok) {
-      setInvoices((prev) =>
-        (prev ?? []).map((r) => (r.id === row.id ? { ...r, status: 'paid' as InvoiceStatus } : r))
-      )
-      toast('Marked as paid')
-    } else {
-      toast('Failed to mark invoice as paid', 'error')
+    if (statusFilter === 'all') {
+      // stable sort: overdue rows first, otherwise preserve the created_at-desc order from the API
+      return [...rows].sort((a, b) => {
+        const aOverdue = isOverdue(a.status, a.due_date) ? 0 : 1
+        const bOverdue = isOverdue(b.status, b.due_date) ? 0 : 1
+        return aOverdue - bOverdue
+      })
     }
-  }
+    return rows
+  }, [invoices, q, statusFilter])
 
   async function deleteInvoice() {
     if (!confirmDelete) return
@@ -112,6 +121,9 @@ export function InvoiceList() {
         <Card>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Outstanding</p>
           <p className="mt-2 text-2xl font-semibold tracking-tight">{outstanding}</p>
+          {overdueRows.length > 0 && (
+            <p className="mt-1 text-xs text-red-600">{overdueSum} overdue</p>
+          )}
         </Card>
         <Card>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Paid this month</p>
@@ -188,7 +200,11 @@ export function InvoiceList() {
                       {formatMoney(Number(r.total), r.currency)}
                     </td>
                     <td className="px-4 py-3 text-sm border-b border-zinc-100">
-                      <Badge status={r.status} />
+                      {isOverdue(r.status, r.due_date) ? (
+                        <Badge status="overdue" label={`Overdue · ${daysOverdue(r.due_date)}d`} />
+                      ) : (
+                        <Badge status={r.status} />
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm border-b border-zinc-100">
                       <div className="flex justify-end gap-1">
@@ -220,10 +236,10 @@ export function InvoiceList() {
                             className="h-7 px-2"
                             onClick={(e) => {
                               e.stopPropagation()
-                              markPaid(r)
+                              setPayingRow(r)
                             }}
                           >
-                            Mark paid
+                            Record payment
                           </Button>
                         )}
                         {r.status === 'draft' && (
@@ -257,6 +273,25 @@ export function InvoiceList() {
         confirmLabel="Delete"
         danger
       />
+
+      {payingRow && (
+        <RecordPaymentModal
+          invoice={{
+            id: payingRow.id,
+            invoice_number: payingRow.invoice_number,
+            total: Number(payingRow.total),
+            currency: payingRow.currency,
+          }}
+          open={!!payingRow}
+          onClose={() => setPayingRow(null)}
+          onSaved={(inv) => {
+            setInvoices((prev) =>
+              (prev ?? []).map((r) => (r.id === inv.id ? { ...r, status: inv.status, updated_at: inv.updated_at } : r))
+            )
+            setPayingRow(null)
+          }}
+        />
+      )}
     </div>
   )
 }

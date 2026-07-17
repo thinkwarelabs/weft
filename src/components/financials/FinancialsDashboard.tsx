@@ -19,7 +19,7 @@ import {
   monthsInRange,
   periodRange,
 } from '@/lib/financials'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, round2 } from '@/lib/money'
 import { Expense } from '@/lib/types'
 import { ExpenseFormModal } from './ExpenseFormModal'
 import { PeriodSelector } from './PeriodSelector'
@@ -31,10 +31,36 @@ interface FinancialsInvoice {
   subtotal: number | string
   tax_amount: number | string
   total: number | string
+  amount_received: number | string | null
+  tds_amount: number | string
   paid_at: string | null
   updated_at: string
   paidDate: string
   clients: { name: string } | null
+}
+
+interface CurrencyAmount {
+  currency: string
+  amount: number
+}
+
+function sumTdsByCurrency(invoices: FinancialsInvoice[]): CurrencyAmount[] {
+  const map = new Map<string, number>()
+  for (const inv of invoices) map.set(inv.currency, (map.get(inv.currency) ?? 0) + Number(inv.tds_amount))
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([currency, amount]) => ({ currency, amount: round2(amount) }))
+}
+
+function CurrencyAmountLines({ amounts }: { amounts: CurrencyAmount[] }) {
+  if (amounts.length === 0) return <span className="text-zinc-400">—</span>
+  return (
+    <div className="flex flex-col gap-0.5">
+      {amounts.map((a) => (
+        <span key={a.currency}>{formatMoney(a.amount, a.currency)}</span>
+      ))}
+    </div>
+  )
 }
 
 interface FinancialsData {
@@ -157,6 +183,7 @@ export function FinancialsDashboard() {
   )
 
   const buckets = useMemo(() => aggregate(revenueRows, expenseRows), [revenueRows, expenseRows])
+  const tdsBuckets = useMemo(() => sumTdsByCurrency(data?.invoices ?? []), [data])
 
   const months = useMemo(() => (ready ? monthsInRange(from, to) : []), [ready, from, to])
   const showMonthly = months.length > 1
@@ -216,7 +243,7 @@ export function FinancialsDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-6 gap-4">
             {SUMMARY_CARDS.map((c) => (
               <Card key={c.field}>
                 <p className="text-xs uppercase tracking-wide text-zinc-500">{c.label}</p>
@@ -225,6 +252,12 @@ export function FinancialsDashboard() {
                 </div>
               </Card>
             ))}
+            <Card>
+              <p className="text-xs uppercase tracking-wide text-zinc-500">TDS deducted</p>
+              <div className="mt-2 text-2xl font-semibold tracking-tight">
+                <CurrencyAmountLines amounts={tdsBuckets} />
+              </div>
+            </Card>
           </div>
 
           {showMonthly && (
@@ -279,6 +312,8 @@ export function FinancialsDashboard() {
                       <th className="px-4 py-3">Client</th>
                       <th className="px-4 py-3">Paid on</th>
                       <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3">Received</th>
+                      <th className="px-4 py-3">TDS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -293,6 +328,12 @@ export function FinancialsDashboard() {
                         <td className="border-b border-zinc-100 px-4 py-3 text-sm">{formatDateLong(inv.paidDate)}</td>
                         <td className="border-b border-zinc-100 px-4 py-3 text-sm">
                           {formatMoney(Number(inv.total), inv.currency)}
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          {formatMoney(Number(inv.amount_received), inv.currency)}
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          {formatMoney(Number(inv.tds_amount), inv.currency)}
                         </td>
                       </tr>
                     ))}

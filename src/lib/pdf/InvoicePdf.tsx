@@ -53,6 +53,7 @@ export interface InvoicePdfData {
   subtotal: number
   taxAmount: number
   total: number
+  cancelled?: boolean
 }
 
 const s = StyleSheet.create({
@@ -120,6 +121,9 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           <View style={s.metaRow}><Text style={s.metaLabel}>Invoice number</Text><Text>{data.number}</Text></View>
           <View style={s.metaRow}><Text style={s.metaLabel}>Date of issue</Text><Text>{formatDateLong(data.issueDate)}</Text></View>
           <View style={s.metaRow}><Text style={s.metaLabel}>Date due</Text><Text>{formatDateLong(data.dueDate)}</Text></View>
+          {data.cancelled && (
+            <View style={s.metaRow}><Text style={s.metaLabel}>Status</Text><Text style={{ fontWeight: 700 }}>CANCELLED</Text></View>
+          )}
         </View>
 
         <View style={s.parties}>
@@ -135,7 +139,8 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
         </View>
 
         <Text style={s.banner}>
-          {fm(data.total)} {data.currency} due {formatDateLong(data.dueDate)}
+          {fm(data.total)} {data.currency}
+          {/* {fm(data.total)} {data.currency} due {formatDateLong(data.dueDate)} */}
         </Text>
         {data.paymentLink && <Link style={s.payLink} src={data.paymentLink}>Pay online</Link>}
 
