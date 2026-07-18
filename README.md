@@ -74,3 +74,4 @@ npm run lint      # Run ESLint
 1. Add your production URL to the Google Cloud Console OAuth client (Authorized origins and Redirect URIs).
 2. Set all environment variables on your hosting platform.
 3. Deploy as a standard Next.js application.
+
