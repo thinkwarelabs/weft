@@ -26,20 +26,51 @@ async function loadStats(today: string) {
   const monthStart = `${y}-${String(m).padStart(2, '0')}-01`
   const nextMonthStart = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`
 
-  const [{ data: finalized }, { data: paid }, { count: totalCount }] = await Promise.all([
+  const [
+    { data: finalized },
+    { data: paidMonth },
+    { data: paidAll },
+    { count: totalCount },
+    { count: draftCount },
+    { count: cancelledCount },
+  ] = await Promise.all([
     db.from('invoices').select('currency, total, due_date').eq('status', 'finalized'),
     db.from('invoices').select('currency, total').eq('status', 'paid').gte('updated_at', monthStart).lt('updated_at', nextMonthStart),
+    db.from('invoices').select('currency, total, amount_received, tds_amount').eq('status', 'paid'),
     db.from('invoices').select('*', { count: 'exact', head: true }),
+    db.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+    db.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'cancelled'),
   ])
 
   const finalizedRows = finalized ?? []
+  const paidRows = paidAll ?? []
   const overdueRows = finalizedRows.filter((r) => (r.due_date as string) < today)
+
+  // Cash actually received and TDS withheld, per currency. Invoices marked paid
+  // before payment recording existed have no amount_received — treat those as
+  // received in full (total minus any recorded TDS).
+  const received: Record<string, number> = {}
+  const tds: Record<string, number> = {}
+  for (const r of paidRows) {
+    const tdsAmt = Number(r.tds_amount ?? 0)
+    const recv = r.amount_received == null ? Number(r.total) - tdsAmt : Number(r.amount_received)
+    received[r.currency] = round2((received[r.currency] ?? 0) + recv)
+    if (tdsAmt) tds[r.currency] = round2((tds[r.currency] ?? 0) + tdsAmt)
+  }
+
   return {
     outstanding: sumByCurrency(finalizedRows),
     overdue: sumByCurrency(overdueRows),
     overdueCount: overdueRows.length,
-    paidThisMonth: sumByCurrency(paid ?? []),
+    paidThisMonth: sumByCurrency(paidMonth ?? []),
     totalCount: totalCount ?? 0,
+    // Issued documents only: drafts and cancelled invoices are excluded.
+    issuedCount: (totalCount ?? 0) - (draftCount ?? 0) - (cancelledCount ?? 0),
+    draftCount: draftCount ?? 0,
+    cancelledCount: cancelledCount ?? 0,
+    invoiced: sumByCurrency([...finalizedRows, ...paidRows]),
+    received,
+    tds,
   }
 }
 

@@ -35,6 +35,12 @@ interface InvoiceStats {
   overdueCount: number
   paidThisMonth: Record<string, number>
   totalCount: number
+  issuedCount: number
+  draftCount: number
+  cancelledCount: number
+  invoiced: Record<string, number>
+  received: Record<string, number>
+  tds: Record<string, number>
 }
 
 interface InvoicesResponse {
@@ -153,21 +159,36 @@ export function InvoiceList() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
+        <Card>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Total invoices</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight">{stats.issuedCount}</p>
+          {(stats.draftCount > 0 || stats.cancelledCount > 0) && (
+            <p className="mt-1 text-xs text-zinc-500">
+              {[
+                stats.draftCount > 0 && `${stats.draftCount} draft${stats.draftCount > 1 ? 's' : ''}`,
+                stats.cancelledCount > 0 && `${stats.cancelledCount} cancelled`,
+              ].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </Card>
+        <Card>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Invoiced</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.invoiced)}</p>
+        </Card>
+        <Card>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Received</p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.received)}</p>
+          {Object.keys(stats.tds).length > 0 && (
+            <p className="mt-1 text-xs text-zinc-500">+ {formatCurrencyMap(stats.tds)} TDS</p>
+          )}
+        </Card>
         <Card>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Outstanding</p>
           <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.outstanding)}</p>
           {stats.overdueCount > 0 && (
             <p className="mt-1 text-xs text-red-600">{formatCurrencyMap(stats.overdue)} overdue</p>
           )}
-        </Card>
-        <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Paid this month</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.paidThisMonth)}</p>
-        </Card>
-        <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Total invoices</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{stats.totalCount}</p>
         </Card>
       </div>
 
