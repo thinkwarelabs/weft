@@ -91,7 +91,9 @@ export function ClientPicker({ selected, onSelect, error }: {
                       key={c.id}
                       role="option"
                       aria-selected={c.id === selected?.id}
-                      onClick={() => pick(c)}
+                      // preventDefault stops the ancestor <label> (ui/Field) from re-dispatching
+                      // the click to the trigger button, which would reopen the panel.
+                      onClick={(e) => { e.preventDefault(); pick(c) }}
                       className={cn(
                         'flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100',
                         c.id === selected?.id && 'bg-zinc-100 text-zinc-900'
