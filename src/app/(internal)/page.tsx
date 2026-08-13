@@ -1,11 +1,10 @@
 import Link from 'next/link'
-import { AppShell } from '@/components/AppShell'
 import { Button } from '@/components/ui/Button'
 import { InvoiceList } from '@/components/invoices/InvoiceList'
 
 export default function HomePage() {
   return (
-    <AppShell>
+    <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
@@ -16,6 +15,6 @@ export default function HomePage() {
       <div className="mt-8">
         <InvoiceList />
       </div>
-    </AppShell>
+    </>
   )
 }

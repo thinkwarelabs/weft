@@ -1,42 +1,64 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ReactNode } from 'react'
-import { auth, signOut } from '@/auth'
-import { isAuditAdmin } from '@/lib/allowlist'
+import { signOut } from '@/auth'
 
-export async function AppShell({ children }: { children: ReactNode }) {
-  const session = await auth()
-  const showAudit = isAuditAdmin(session?.user?.email)
+// Presentational only.
+//
+// This used to call auth() and isAuditAdmin() itself. It no longer does: the
+// (internal) layout already resolved the actor through requireInternal(), and a
+// component that re-derives authorization is a component that can disagree with
+// the guard. It takes what it needs as props and renders.
+export interface AppShellActor {
+  name: string | null
+  email: string
+  image: string | null
+}
+
+const NAV = [
+  { href: '/', label: 'Invoices' },
+  { href: '/financials', label: 'Financials' },
+  { href: '/clients', label: 'Clients' },
+  { href: '/settings', label: 'Business profile' },
+] as const
+
+const linkClass =
+  'rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900'
+
+export function AppShell({
+  actor,
+  showAudit,
+  children,
+}: {
+  actor: AppShellActor
+  showAudit: boolean
+  children: ReactNode
+}) {
   return (
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-zinc-200 bg-white">
         <div className="flex items-center gap-2.5 px-6 py-6">
           <Image src="/logo.png" alt="Thinkware Labs" width={150} height={18} priority />
         </div>
+
         <nav className="flex flex-1 flex-col gap-1 px-3">
-          <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-            Invoices
-          </Link>
-          <Link href="/financials" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-            Financials
-          </Link>
-          <Link href="/clients" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-            Clients
-          </Link>
-          <Link href="/settings" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-            Business profile
-          </Link>
+          {NAV.map((item) => (
+            <Link key={item.href} href={item.href} className={linkClass}>
+              {item.label}
+            </Link>
+          ))}
           {showAudit && (
-            <Link href="/audit" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
+            <Link href="/audit" className={linkClass}>
               Audit log
             </Link>
           )}
         </nav>
+
         <div className="flex items-center justify-between gap-2 border-t border-zinc-100 px-4 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            {session?.user?.image ? (
+            {actor.image ? (
               <Image
-                src={session.user.image}
+                src={actor.image}
                 alt=""
                 width={32}
                 height={32}
@@ -44,21 +66,20 @@ export async function AppShell({ children }: { children: ReactNode }) {
               />
             ) : (
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-600">
-                {(session?.user?.name ?? session?.user?.email ?? '?').charAt(0).toUpperCase()}
+                {(actor.name ?? actor.email).charAt(0).toUpperCase()}
               </span>
             )}
             <div className="group relative min-w-0">
-              {session?.user?.name && (
-                <p className="truncate text-xs font-medium text-zinc-900">{session.user.name}</p>
+              {actor.name && (
+                <p className="truncate text-xs font-medium text-zinc-900">{actor.name}</p>
               )}
-              <p className="truncate text-xs text-zinc-500">{session?.user?.email}</p>
-              {session?.user?.email && (
-                <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100">
-                  {session.user.email}
-                </span>
-              )}
+              <p className="truncate text-xs text-zinc-500">{actor.email}</p>
+              <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100">
+                {actor.email}
+              </span>
             </div>
           </div>
+
           <form
             action={async () => {
               'use server'
@@ -67,24 +88,15 @@ export async function AppShell({ children }: { children: ReactNode }) {
           >
             <button
               type="submit"
-              aria-label="Sign out"
-              className="group relative cursor-pointer rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              className="shrink-0 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
             >
-              <span className="pointer-events-none absolute bottom-full right-0 mb-1.5 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100">
-                Sign out
-              </span>
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)" width="16" height="16" aria-hidden>
-                <path d="M12.9999 2C10.2385 2 7.99991 4.23858 7.99991 7C7.99991 7.55228 8.44762 8 8.99991 8C9.55219 8 9.99991 7.55228 9.99991 7C9.99991 5.34315 11.3431 4 12.9999 4H16.9999C18.6568 4 19.9999 5.34315 19.9999 7V17C19.9999 18.6569 18.6568 20 16.9999 20H12.9999C11.3431 20 9.99991 18.6569 9.99991 17C9.99991 16.4477 9.55219 16 8.99991 16C8.44762 16 7.99991 16.4477 7.99991 17C7.99991 19.7614 10.2385 22 12.9999 22H16.9999C19.7613 22 21.9999 19.7614 21.9999 17V7C21.9999 4.23858 19.7613 2 16.9999 2H12.9999Z" fill="currentColor" />
-                <path d="M13.9999 11C14.5522 11 14.9999 11.4477 14.9999 12C14.9999 12.5523 14.5522 13 13.9999 13V11Z" fill="currentColor" />
-                <path d="M5.71783 11C5.80685 10.8902 5.89214 10.7837 5.97282 10.682C6.21831 10.3723 6.42615 10.1004 6.57291 9.90549C6.64636 9.80795 6.70468 9.72946 6.74495 9.67492L6.79152 9.61162L6.804 9.59454L6.80842 9.58848C6.80846 9.58842 6.80892 9.58778 5.99991 9L6.80842 9.58848C7.13304 9.14167 7.0345 8.51561 6.58769 8.19098C6.14091 7.86637 5.51558 7.9654 5.19094 8.41215L5.18812 8.41602L5.17788 8.43002L5.13612 8.48679C5.09918 8.53682 5.04456 8.61033 4.97516 8.7025C4.83623 8.88702 4.63874 9.14542 4.40567 9.43937C3.93443 10.0337 3.33759 10.7481 2.7928 11.2929L2.08569 12L2.7928 12.7071C3.33759 13.2519 3.93443 13.9663 4.40567 14.5606C4.63874 14.8546 4.83623 15.113 4.97516 15.2975C5.04456 15.3897 5.09918 15.4632 5.13612 15.5132L5.17788 15.57L5.18812 15.584L5.19045 15.5872C5.51509 16.0339 6.14091 16.1336 6.58769 15.809C7.0345 15.4844 7.13355 14.859 6.80892 14.4122L5.99991 15C6.80892 14.4122 6.80897 14.4123 6.80892 14.4122L6.804 14.4055L6.79152 14.3884L6.74495 14.3251C6.70468 14.2705 6.64636 14.1921 6.57291 14.0945C6.42615 13.8996 6.21831 13.6277 5.97282 13.318C5.89214 13.2163 5.80685 13.1098 5.71783 13H13.9999V11H5.71783Z" fill="currentColor" />
-              </svg>
+              Sign out
             </button>
           </form>
         </div>
       </aside>
-      <main className="ml-60 flex-1 px-10 py-10">
-        <div className="mx-auto max-w-5xl">{children}</div>
-      </main>
+
+      <main className="ml-60 flex-1 px-10 py-10">{children}</main>
     </div>
   )
 }

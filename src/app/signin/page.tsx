@@ -1,28 +1,65 @@
 import Image from 'next/image'
 import { signIn } from '@/auth'
 
+// Outside the (internal) route group on purpose — this page must render for
+// someone who has no session, and middleware lists /signin as public.
+
+const ERRORS: Record<string, string> = {
+  // Auth.js maps a `false` return from the signIn callback to AccessDenied.
+  // That is the allowlist (or, later, the Workspace `hd` check) refusing.
+  AccessDenied:
+    "That Google account isn't authorized for Weft. Ask Shivam to add it, then try again.",
+  Verification: 'That sign-in link has expired or was already used.',
+  Configuration:
+    'Sign-in is misconfigured on the server. Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and AUTH_SECRET.',
+  OAuthAccountNotLinked:
+    'That email is already associated with a different sign-in method.',
+  default: 'Something went wrong signing you in. Please try again.',
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; callbackUrl?: string }>
 }) {
-  const { error } = await searchParams
+  const { error, callbackUrl } = await searchParams
+  const message = error ? (ERRORS[error] ?? ERRORS.default) : null
+
+  // Only ever redirect to a path on this origin. An attacker-supplied absolute
+  // URL here would turn the sign-in page into an open redirect.
+  const redirectTo =
+    callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+      ? callbackUrl
+      : '/'
+
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-8 shadow-sm">
         <Image src="/logo.png" alt="Thinkware Labs" width={180} height={22} priority />
-        <h1 className="mt-8 text-xl font-semibold tracking-tight">Sign in to Invoice</h1>
-        <p className="mt-1 text-sm text-zinc-500">Internal tool — authorized accounts only.</p>
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            This Google account isn&apos;t authorized to use this app.
+
+        <h1 className="mt-8 text-xl font-semibold tracking-tight">Sign in to Weft</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Internal platform — authorized accounts only.
+        </p>
+
+        {message && (
+          <div
+            role="alert"
+            className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+              error === 'AccessDenied'
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+          >
+            {message}
           </div>
         )}
+
         <form
           className="mt-6"
           action={async () => {
             'use server'
-            await signIn('google', { redirectTo: '/' })
+            await signIn('google', { redirectTo })
           }}
         >
           <button

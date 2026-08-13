@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { db } from '@/lib/supabase'
-import { isAuditAdmin } from '@/lib/allowlist'
+import { isAuditAdmin } from '@/lib/env'
 import { pageCount, parsePagination } from '@/lib/pagination'
 
 export async function GET(req: Request) {
