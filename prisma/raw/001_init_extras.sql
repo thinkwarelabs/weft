@@ -87,16 +87,23 @@ alter table "client_access_tokens"
 alter table "client_access_tokens"
   add constraint client_token_expiry_sane check (expires_at > created_at);
 
--- Partial index: the hot lookup is always "live tokens for this project".
-create index if not exists client_access_tokens_live_idx
-  on "client_access_tokens" (project_id)
-  where revoked_at is null;
+-- NOTE: a partial index on (project_id) WHERE revoked_at IS NULL would be the
+-- natural optimisation here, but Prisma cannot express partial indexes and
+-- would generate a migration to drop it. The plain @@index([projectId]) on the
+-- model is sufficient at this volume.
 
 -- ---------------------------------------------------------------------------
 -- 5. Full-text search vectors
 --
 -- GENERATED ... STORED columns: Postgres maintains them on write, so there is
 -- no trigger to forget and no way for the index to drift from the row.
+--
+-- Prisma emits these as PLAIN tsvector columns (it only sees
+-- Unsupported("tsvector")), so each is dropped and re-added as GENERATED.
+-- Dropping the column drops Prisma's GIN index with it, so we recreate each one
+-- USING PRISMA'S OWN INDEX NAME (<table>_search_vector_idx). Do not rename
+-- them: if these differ from what Prisma derives from @@index, every future
+-- `migrate dev` will generate a spurious rename migration.
 -- ---------------------------------------------------------------------------
 
 alter table "timeline_entries"
@@ -105,7 +112,7 @@ alter table "timeline_entries"
   add column search_vector tsvector
   generated always as (to_tsvector('english', coalesce(body, ''))) stored;
 
-create index if not exists timeline_entries_search_idx
+create index if not exists timeline_entries_search_vector_idx
   on "timeline_entries" using gin (search_vector);
 
 alter table "ideas"
@@ -117,7 +124,7 @@ alter table "ideas"
     setweight(to_tsvector('english', coalesce(body,  '')), 'B')
   ) stored;
 
-create index if not exists ideas_search_idx
+create index if not exists ideas_search_vector_idx
   on "ideas" using gin (search_vector);
 
 alter table "comments"
@@ -126,7 +133,7 @@ alter table "comments"
   add column search_vector tsvector
   generated always as (to_tsvector('english', coalesce(body, ''))) stored;
 
-create index if not exists comments_search_idx
+create index if not exists comments_search_vector_idx
   on "comments" using gin (search_vector);
 
 alter table "files"
@@ -135,7 +142,7 @@ alter table "files"
   add column search_vector tsvector
   generated always as (to_tsvector('english', coalesce(name, ''))) stored;
 
-create index if not exists files_search_idx
+create index if not exists files_search_vector_idx
   on "files" using gin (search_vector);
 
 -- A pending/absent transcript coalesces to '' — it indexes fine and simply
@@ -146,7 +153,7 @@ alter table "voice_notes"
   add column search_vector tsvector
   generated always as (to_tsvector('english', coalesce(transcript, ''))) stored;
 
-create index if not exists voice_notes_search_idx
+create index if not exists voice_notes_search_vector_idx
   on "voice_notes" using gin (search_vector);
 
 -- ---------------------------------------------------------------------------

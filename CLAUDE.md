@@ -124,6 +124,35 @@ token: *"the holder may leave feedback on project X until <date>"*.
   `tsvector` generated columns, RLS) lives in `prisma/raw/001_init_extras.sql`
   and is appended by hand to the generated init migration.
 - **Never edit an applied migration.** Write a new one.
+
+### Always use `--create-only`, then read the SQL
+
+```bash
+npx prisma migrate dev --create-only --name <what_changed>
+#   ...read prisma/migrations/*_<name>/migration.sql, edit if needed...
+npx prisma migrate deploy
+```
+
+Never let `migrate dev` generate and apply in one step. Prisma cannot represent
+`GENERATED ALWAYS AS ... STORED`, so it reads the five `search_vector`
+generation expressions as column defaults and adds this to **every** migration
+it writes:
+
+```sql
+ALTER TABLE "comments"          ALTER COLUMN "search_vector" DROP DEFAULT;
+ALTER TABLE "files"             ALTER COLUMN "search_vector" DROP DEFAULT;
+ALTER TABLE "ideas"             ALTER COLUMN "search_vector" DROP DEFAULT;
+ALTER TABLE "timeline_entries"  ALTER COLUMN "search_vector" DROP DEFAULT;
+ALTER TABLE "voice_notes"       ALTER COLUMN "search_vector" DROP DEFAULT;
+```
+
+**Delete those lines before applying.** They are noise, not a change — the
+columns are generated, not defaulted. (`DROP DEFAULT` is harmless; `DROP
+EXPRESSION` would not be, so if you ever see *that*, stop and think.)
+
+Removing `searchVector` from `schema.prisma` to silence this is worse: the
+columns exist in the shadow database, so Prisma would generate `DROP COLUMN`
+instead. `Unsupported("tsvector")?` plus this rule is the correct trade.
 - Migrations need `DIRECT_URL` (session pooler, port 5432). DDL cannot run
   through the transaction pooler.
 
@@ -136,3 +165,19 @@ token: *"the holder may leave feedback on project X until <date>"*.
   must never roll back the thing it logs.
 - Enforce security and business rules **server-side**, never only in the UI.
 - Run `npm run lint && npx tsc --noEmit && npm test` before every commit.
+
+**Lint must stay green.** The import zones in `eslint.config.mjs` are a security
+control, not a style preference — they are what stops client-facing code from
+importing the invoicing modules. A permanently red lint run is one nobody reads,
+and that is how a real boundary violation slips through unnoticed. If something
+unrelated starts failing, fix it or downgrade it explicitly with a comment
+saying why; never leave the run red.
+
+### Known debt
+
+- Four ported components call `setState` inside an effect
+  (`react-hooks/set-state-in-effect`, downgraded to a warning). The fix is to
+  remount the modals with a `key` prop instead of syncing state. Clean up when
+  those components are rewired to Prisma, then restore the rule to `error`.
+- The 17 files importing `@/lib/supabase` are the Step 2 rewrite surface. They
+  are expected to fail `tsc` until then.
