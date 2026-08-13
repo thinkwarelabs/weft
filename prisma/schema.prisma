@@ -1,0 +1,552 @@
+// Weft — Prisma schema
+//
+// One database, one source of truth. Tables/columns are mapped to snake_case so
+// raw SQL (the invoice-number function, the check constraints, the tsvector
+// columns) reads naturally alongside the generated client.
+//
+// Things Prisma cannot express live in prisma/raw/001_init_extras.sql and are
+// appended by hand to the generated init migration. See that file's header.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma" // gitignored; regenerated on postinstall
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7: no `url` here. The CLI reads it from prisma.config.ts; the
+  // runtime client connects via a driver adapter (see src/lib/db.ts).
+}
+
+// ---------------------------------------------------------------------------
+// Identity — internal only
+//
+// Sessions are stateless JWTs (Google Workspace SSO), so there are deliberately
+// NO Auth.js adapter tables (Account/Session/VerificationToken). This row exists
+// so authorship is a real foreign key rather than a denormalised email string:
+// it survives someone changing their display name, and gives Ideas/Comments
+// something to point at in Step 6.
+//
+// Rows are upserted by email in the signIn callback (src/auth.ts).
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique // always @<WORKSPACE_DOMAIN>, verified via the `hd` claim
+  name      String?
+  image     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  timelineEntries  TimelineEntry[]
+  feedbackRequests FeedbackRequest[]
+  ideas            Idea[]
+  comments         Comment[]
+  files            File[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Client spine
+// ---------------------------------------------------------------------------
+
+model Client {
+  id String @id @default(cuid())
+
+  name String
+
+  // The billing party's address block — printed on the invoice PDF and frozen
+  // into Invoice.clientSnapshot at finalize time.
+  //
+  // `billingEmail` is where invoices go. It is NOT a person who can log in and
+  // is deliberately separate from ClientContact: conflating the two is how a
+  // client's accounts department ends up holding a feedback link.
+  billingEmail String? @map("billing_email")
+  phone        String?
+  taxId        String? @map("tax_id")
+  addressLine1 String? @map("address_line1")
+  addressLine2 String? @map("address_line2")
+  city         String?
+  state        String?
+  postalCode   String? @map("postal_code")
+  country      String?
+
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projects Project[]
+  contacts ClientContact[]
+  invoices Invoice[]
+
+  @@index([archived, name])
+  @@map("clients")
+}
+
+// A named human at a client. The only identity that can author client-side
+// content. Feedback links are issued TO a contact FOR a project.
+model ClientContact {
+  id       String @id @default(cuid())
+  clientId String @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name   String
+  email  String
+  title  String?
+  // Flip to false to cut this person off. Checked on every token exchange, so
+  // it takes effect immediately rather than at cookie expiry.
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tokens           ClientAccessToken[]
+  timelineEntries  TimelineEntry[]
+  feedbackRequests FeedbackRequest[]
+
+  @@unique([clientId, email])
+  @@index([clientId, active])
+  @@map("client_contacts")
+}
+
+// The unit of scope for EVERYTHING client-facing. A client access token grants
+// exactly one project. `projectId` is never nullable anywhere it appears — a
+// nullable scope key is one bad query away from meaning "all projects".
+model Project {
+  id       String @id @default(cuid())
+  clientId String @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id])
+
+  name   String
+  slug   String        @unique // used in URLs internally; NEVER in client-facing URLs
+  status ProjectStatus @default(onboarding)
+
+  // Onboarding is a checklist on the ENGAGEMENT, not the client — a returning
+  // client onboards again for a new project.
+  // Shape: [{ key, label, doneAt, doneByUserId }]
+  onboarding Json?
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  archivedAt DateTime? @map("archived_at")
+
+  invoices Invoice[]
+  entries  TimelineEntry[]
+  tokens   ClientAccessToken[]
+  requests FeedbackRequest[]
+  ideas    Idea[]
+
+  @@index([clientId, status])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  onboarding
+  active
+  paused
+  closed
+}
+
+// ---------------------------------------------------------------------------
+// Invoicing
+// ---------------------------------------------------------------------------
+
+// Singleton. `CHECK (id = 1)` is added in the raw SQL — Prisma cannot express it.
+model BusinessProfile {
+  id Int @id @default(1)
+
+  companyName       String  @default("Thinkware Labs") @map("company_name")
+  addressLine1      String? @map("address_line1")
+  addressLine2      String? @map("address_line2")
+  city              String?
+  state             String?
+  postalCode        String? @map("postal_code")
+  country           String?
+  email             String?
+  phone             String?
+  taxId             String? @map("tax_id")
+  legalNote         String? @map("legal_note")
+  bankAccountName   String? @map("bank_account_name")
+  bankName          String? @map("bank_name")
+  bankAccountNumber String? @map("bank_account_number")
+  bankIfsc          String? @map("bank_ifsc")
+  bankSwift         String? @map("bank_swift")
+
+  invoicePrefix String @default("TWL") @map("invoice_prefix")
+  // Claimed atomically by allocate_invoice_number(). Never increment this from
+  // application code — see prisma/raw/001_init_extras.sql.
+  nextInvoiceNumber Int @default(1) @map("next_invoice_number")
+
+  defaultCurrency String  @default("USD") @map("default_currency")
+  defaultTaxLabel String? @default("IGST - INDIA") @map("default_tax_label")
+  defaultTaxRate  Decimal @default(18) @map("default_tax_rate") @db.Decimal(5, 2)
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("business_profile")
+}
+
+model Invoice {
+  id            String  @id @default(cuid())
+  // Null until finalized; allocate_invoice_number() assigns it exactly once.
+  invoiceNumber String? @unique @map("invoice_number")
+
+  clientId String @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id])
+
+  // REQUIRED. Every invoice belongs to an engagement. If a client has no
+  // project, the UI creates a default one rather than leaving this null.
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id])
+
+  issueDate DateTime      @map("issue_date") @db.Date
+  dueDate   DateTime      @map("due_date") @db.Date
+  status    InvoiceStatus @default(draft)
+
+  currency String  @default("USD")
+  taxLabel String? @map("tax_label")
+  taxRate  Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2)
+
+  paymentLink String? @map("payment_link")
+  notes       String?
+
+  // Frozen at finalize so a regenerated PDF never drifts, even if the business
+  // profile or the client record changes afterwards. Do not backfill these.
+  businessSnapshot Json? @map("business_snapshot")
+  clientSnapshot   Json? @map("client_snapshot")
+
+  subtotal  Decimal @default(0) @db.Decimal(14, 2)
+  taxAmount Decimal @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  total     Decimal @default(0) @db.Decimal(14, 2)
+
+  paidAt           DateTime? @map("paid_at")
+  amountReceived   Decimal?  @map("amount_received") @db.Decimal(14, 2)
+  tdsAmount        Decimal   @default(0) @map("tds_amount") @db.Decimal(14, 2)
+  paymentReference String?   @map("payment_reference")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items InvoiceItem[]
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status, dueDate])
+  @@index([createdAt(sort: Desc)])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  draft
+  finalized
+  paid
+  cancelled
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoiceId String  @map("invoice_id")
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  description String
+  period      String?
+  qty         Decimal @default(1) @db.Decimal(10, 3)
+
+  // GST-inclusive pricing, as built in the Invoice app and covered by
+  // src/lib/gst.ts + money.ts (26 tests). When gstIncluded is true the user
+  // typed `enteredUnitPrice` (tax included) and `unitPrice` holds the
+  // back-calculated pre-tax price. Keep both — the PDF shows what was typed.
+  unitPrice        Decimal  @default(0) @map("unit_price") @db.Decimal(14, 2)
+  gstIncluded      Boolean  @default(true) @map("gst_included")
+  enteredUnitPrice Decimal? @map("entered_unit_price") @db.Decimal(14, 2)
+
+  amount    Decimal @default(0) @db.Decimal(14, 2)
+  sortOrder Int     @default(0) @map("sort_order")
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  name        String
+  expenseType String?   @map("expense_type")
+  amount      Decimal   @db.Decimal(14, 2)
+  currency    String    @default("USD")
+  payerType   PayerType @default(company) @map("payer_type")
+  payerName   String?   @map("payer_name")
+  expenseDate DateTime  @map("expense_date") @db.Date
+  note        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+enum PayerType {
+  company
+  person
+}
+
+// ---------------------------------------------------------------------------
+// Client timeline — "Thread" and "Feedback" are one object with two authors
+// ---------------------------------------------------------------------------
+
+model TimelineEntry {
+  id        String  @id @default(cuid())
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  kind EntryKind
+
+  // Exactly one of authorUserId / authorContactId is set, enforced by a CHECK
+  // constraint in the raw SQL — not just in application code. The entire
+  // client-scoping design rests on never confusing an internal note with
+  // client-authored feedback.
+  authorType      AuthorType     @map("author_type")
+  authorUserId    String?        @map("author_user_id")
+  authorUser      User?          @relation(fields: [authorUserId], references: [id])
+  authorContactId String?        @map("author_contact_id")
+  authorContact   ClientContact? @relation(fields: [authorContactId], references: [id])
+
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  answers FeedbackRequest? @relation("RequestAnswer")
+
+  searchVector Unsupported("tsvector")? @map("search_vector") // GENERATED in raw SQL
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([projectId, kind])
+  @@index([searchVector], type: Gin)
+  @@map("timeline_entries")
+}
+
+enum EntryKind {
+  note // internal only — NEVER returned to a client
+  feedback // client-authored
+  milestone // client-visible
+  status_change // internal only
+}
+
+enum AuthorType {
+  internal
+  client
+}
+
+// "Request feedback" is an action on the timeline, not a separate app.
+model FeedbackRequest {
+  id        String  @id @default(cuid())
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  contactId String        @map("contact_id")
+  contact   ClientContact @relation(fields: [contactId], references: [id])
+
+  prompt String
+
+  requestedById String @map("requested_by_id")
+  requestedBy   User   @relation(fields: [requestedById], references: [id])
+
+  // The timeline entry that answered this request, once it arrives.
+  answerId String?        @unique @map("answer_id")
+  answer   TimelineEntry? @relation("RequestAnswer", fields: [answerId], references: [id])
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  respondedAt DateTime? @map("responded_at")
+
+  @@index([projectId])
+  @@index([contactId])
+  @@map("feedback_requests")
+}
+
+// ---------------------------------------------------------------------------
+// Client trust boundary
+//
+// NOT an Auth.js session. This is a capability token: it says "the holder may
+// do <scope> on <project>", never "the holder is a user of this application".
+// ---------------------------------------------------------------------------
+
+model ClientAccessToken {
+  id String @id @default(cuid())
+
+  // sha256 of 32 random bytes. The raw token exists only in the email we send;
+  // it is never stored, never logged, and never appears in a URL after the
+  // one-time exchange redirect.
+  tokenHash String @unique @map("token_hash")
+
+  contactId String        @map("contact_id")
+  contact   ClientContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  // The scope. Never null, never a list.
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  scope TokenScope @default(feedback)
+
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  createdByEmail String   @map("created_by_email")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([contactId])
+  @@index([expiresAt])
+  @@map("client_access_tokens")
+}
+
+enum TokenScope {
+  feedback
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Clients act too now (token exchange, feedback submission), so the actor's
+  // side of the trust boundary is recorded explicitly.
+  actorType  ActorType @default(internal) @map("actor_type")
+  actorEmail String?   @map("actor_email")
+
+  action     String // 'invoice.finalize', 'client_token.mint', 'feedback.submit'
+  entityType String? @map("entity_type")
+  entityId   String? @map("entity_id")
+  metadata   Json?
+  ip         String?
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorEmail])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+enum ActorType {
+  internal
+  client
+  system
+}
+
+// ---------------------------------------------------------------------------
+// Ideas & Vault (ported from Trove in Step 6)
+//
+// Included here so the schema is final and User/Project relations are complete.
+// Append-only by construction: there is NO update path for Idea.title/body
+// anywhere in the app, and that absence IS the guarantee. Do not add one.
+// Deletion is allowed only by the author within 15 minutes of creation,
+// enforced server-side.
+// ---------------------------------------------------------------------------
+
+model Idea {
+  id       String @id @default(cuid())
+  title    String
+  body     String
+  authorId String @map("author_id")
+  author   User   @relation(fields: [authorId], references: [id])
+
+  // Optional TAG, not a scope. Ideas are team space and are never exposed on
+  // any client-facing surface, tagged or not.
+  projectId String?  @map("project_id")
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  // Deliberately no updatedAt — nothing updates an idea.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comments  Comment[]
+  files     File[]
+  voiceNote VoiceNote?
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  @@index([projectId])
+  @@index([searchVector], type: Gin)
+  @@map("ideas")
+}
+
+model Comment {
+  id     String  @id @default(cuid())
+  body   String? // optional — a comment may be voice-only
+  ideaId String  @map("idea_id")
+  idea   Idea    @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  authorId String @map("author_id")
+  author   User   @relation(fields: [authorId], references: [id])
+
+  parentId String?   @map("parent_id")
+  parent   Comment?  @relation("Thread", fields: [parentId], references: [id])
+  replies  Comment[] @relation("Thread")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  voiceNote VoiceNote?
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  @@index([ideaId])
+  @@index([searchVector], type: Gin)
+  @@map("comments")
+}
+
+// Metadata for a file whose bytes live in the OWNER's Google Drive. This table
+// is the source of truth for what files exist — never enumerate Drive folders.
+model File {
+  id          String  @id @default(cuid())
+  driveFileId String  @unique @map("drive_file_id")
+  name        String
+  mimeType    String  @map("mime_type")
+  sizeBytes   BigInt? @map("size_bytes")
+
+  uploaderId String @map("uploader_id")
+  uploader   User   @relation(fields: [uploaderId], references: [id])
+
+  ideaId String? @map("idea_id")
+  idea   Idea?   @relation(fields: [ideaId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  @@index([ideaId])
+  @@index([searchVector], type: Gin)
+  @@map("files")
+}
+
+model VoiceNote {
+  id          String  @id @default(cuid())
+  driveFileId String  @map("drive_file_id")
+  durationSec Int?    @map("duration_sec")
+  transcript  String? // feeds search so old voice notes stay findable
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  ideaId    String?  @unique @map("idea_id")
+  idea      Idea?    @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  commentId String?  @unique @map("comment_id")
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
+  @@index([searchVector], type: Gin)
+  @@map("voice_notes")
+}
+
+// The owner's Drive authorization. Exactly one row in normal use. The refresh
+// token is AES-256-GCM encrypted at rest — never plaintext. `status` flips to
+// reauth_required when Google returns invalid_grant.
+model DriveConnection {
+  id            String   @id @default(cuid())
+  ownerEmail    String   @unique @map("owner_email")
+  refreshToken  String   @map("refresh_token") // ENCRYPTED (iv|tag|ciphertext, base64)
+  status        String   @default("active") // "active" | "reauth_required"
+  vaultFolderId String?  @map("vault_folder_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("drive_connections")
+}

@@ -9,14 +9,19 @@ out/
 .env
 .env.local
 .env*.local
+.env*
+# ...but the template MUST be committed (the broad .env* above would eat it).
+!.env.example
 
-# misc
+# generated
+src/generated/
 *.tsbuildinfo
 next-env.d.ts
+
+# misc
 .DS_Store
+.vercel
 
 # local reference assets (not app code)
 Invoice-WD7VNO2J-0012.pdf
 thinkwarelabs_logo.png
-.vercel
-.env*
