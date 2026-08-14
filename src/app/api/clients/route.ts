@@ -1,38 +1,94 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/supabase'
+import { db } from '@/lib/db'
 import { clientInput } from '@/lib/validation'
 import { logAudit } from '@/lib/audit'
 import { pageCount, parsePagination } from '@/lib/pagination'
-import { sanitizeIlike } from '@/lib/search'
+import { requireInternal, toResponse } from '@/lib/auth/internal'
+import { serializeClient } from '@/lib/serialize'
 
 export async function GET(req: Request) {
-  const params = new URL(req.url).searchParams
-  const { page, pageSize, from, to } = parsePagination(params)
+  try {
+    await requireInternal()
 
-  let query = db
-    .from('clients')
-    .select('*', { count: 'exact' })
-    .eq('archived', false)
-    .order('name')
+    const params = new URL(req.url).searchParams
+    const { page, pageSize, from } = parsePagination(params)
+    const q = params.get('q')?.trim()
 
-  const q = sanitizeIlike(params.get('q'))
-  if (q) query = query.or(`name.ilike.*${q}*,email.ilike.*${q}*`)
+    // Prisma parameterises this, so the sanitizeIlike() dance the Supabase
+    // version needed (escaping `,()*%` before interpolating into a PostgREST
+    // filter string) is gone. Nothing is being interpolated any more.
+    const where = {
+      archived: false,
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' as const } },
+              { billingEmail: { contains: q, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    }
 
-  const { data, error, count } = await query.range(from, to)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const [clients, total] = await Promise.all([
+      db.client.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip: from,
+        take: pageSize,
+      }),
+      db.client.count({ where }),
+    ])
 
-  const total = count ?? 0
-  return NextResponse.json({ clients: data, total, page, pageSize, pageCount: pageCount(total, pageSize) })
+    return NextResponse.json({
+      clients: clients.map(serializeClient),
+      total,
+      page,
+      pageSize,
+      pageCount: pageCount(total, pageSize),
+    })
+  } catch (error) {
+    return toResponse(error)
+  }
 }
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const parsed = clientInput.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid input', issues: parsed.error.flatten().fieldErrors }, { status: 400 })
+  try {
+    await requireInternal()
+
+    const parsed = clientInput.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      )
+    }
+    const d = parsed.data
+
+    const client = await db.client.create({
+      data: {
+        name: d.name,
+        // The form field is still called "email"; it is the BILLING address.
+        billingEmail: d.email || null,
+        phone: d.phone || null,
+        taxId: d.tax_id || null,
+        addressLine1: d.address_line1 || null,
+        addressLine2: d.address_line2 || null,
+        city: d.city || null,
+        state: d.state || null,
+        postalCode: d.postal_code || null,
+        country: d.country || null,
+      },
+    })
+
+    await logAudit({
+      action: 'client.create',
+      entityType: 'client',
+      entityId: client.id,
+      metadata: { name: client.name },
+    })
+
+    return NextResponse.json({ client: serializeClient(client) }, { status: 201 })
+  } catch (error) {
+    return toResponse(error)
   }
-  const { data, error } = await db.from('clients').insert(parsed.data).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  await logAudit({ action: 'client.create', entityType: 'client', entityId: data.id, metadata: { name: data.name } })
-  return NextResponse.json({ client: data }, { status: 201 })
 }

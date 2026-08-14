@@ -23,6 +23,45 @@ describe('invoiceInput', () => {
     expect(invoiceInput.safeParse({ ...validInvoice, tax_rate: -1 }).success).toBe(false)
     expect(invoiceInput.safeParse({ ...validInvoice, payment_link: 'not a url' }).success).toBe(false)
   })
+
+  it('accepts a cuid client_id', () => {
+    // Regression: this was `.uuid()` when the database was Supabase with
+    // gen_random_uuid(). Prisma issues cuids, so every real client id failed
+    // validation and surfaced as the misleading error "Pick a client".
+    expect(
+      invoiceInput.safeParse({ ...validInvoice, client_id: 'cmf3k2x9d0000qw8l7h2v1abc' }).success
+    ).toBe(true)
+  })
+
+  it('still requires SOME client id', () => {
+    expect(invoiceInput.safeParse({ ...validInvoice, client_id: '' }).success).toBe(false)
+  })
+
+  it('treats payment_link and notes as optional', () => {
+    // Blank, whitespace, and entirely absent must all be accepted — an invoice
+    // is valid with neither field.
+    for (const patch of [
+      { payment_link: '', notes: '' },
+      { payment_link: '   ', notes: '   ' },
+      {},
+    ]) {
+      const input = { ...validInvoice, ...patch }
+      if (Object.keys(patch).length === 0) {
+        delete (input as Record<string, unknown>).payment_link
+        delete (input as Record<string, unknown>).notes
+      }
+      expect(invoiceInput.safeParse(input).success).toBe(true)
+    }
+  })
+
+  it('still validates a payment_link that was actually supplied', () => {
+    // A malformed link renders as a broken hyperlink on a document already sent
+    // to a client, so "optional" must not mean "unchecked when present".
+    expect(invoiceInput.safeParse({ ...validInvoice, payment_link: 'example.com' }).success).toBe(false)
+    expect(
+      invoiceInput.safeParse({ ...validInvoice, payment_link: 'https://pay.example.com/abc' }).success
+    ).toBe(true)
+  })
 })
 
 describe('clientInput', () => {

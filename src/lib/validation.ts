@@ -3,6 +3,26 @@ import { z } from 'zod'
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
 const optionalText = z.string().trim().optional().default('')
 
+// Optional URL: absent, blank or whitespace-only are all fine, but a value the
+// user actually typed must be a real URL. A malformed payment link renders as a
+// broken hyperlink on an invoice that has already gone to a client, which is
+// worse than having no link at all.
+//
+// Built as trim -> default -> refine rather than a union of ('' | url): a union
+// rejects "   ", because that matches neither the empty literal nor a valid URL.
+// The form trims before sending, but the server must not rely on that.
+const optionalUrl = z
+  .string()
+  .trim()
+  .optional()
+  .default('')
+  .superRefine((value, ctx) => {
+    if (value === '') return
+    if (!z.string().url().safeParse(value).success) {
+      ctx.addIssue({ code: 'custom', message: 'Include the full URL, e.g. https://…' })
+    }
+  })
+
 export const clientInput = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   address_line1: optionalText,
@@ -25,13 +45,18 @@ export const invoiceItemInput = z.object({
 })
 
 export const invoiceInput = z.object({
-  client_id: z.string().uuid('Pick a client'),
+  // Ids are cuids (Prisma @default(cuid())), NOT uuids — this was `.uuid()`
+  // when the database was Supabase with gen_random_uuid(), which rejected every
+  // real client id and reported it as "Pick a client". The format isn't worth
+  // asserting here: the foreign key is what guarantees the client exists.
+  client_id: z.string().min(1, 'Pick a client'),
   issue_date: isoDate,
   due_date: isoDate,
   currency: z.string().length(3),
   tax_label: optionalText,
   tax_rate: z.number().min(0).max(100),
-  payment_link: z.string().trim().url().optional().or(z.literal('')).default(''),
+  // Both optional — an invoice is valid with neither.
+  payment_link: optionalUrl,
   notes: optionalText,
   items: z.array(invoiceItemInput).min(1, 'Add at least one item'),
 })

@@ -1,67 +1,101 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
-import { db } from '@/lib/supabase'
+import { db, num } from '@/lib/db'
 import { sendInvoiceGeneratedEmail } from '@/lib/email'
 import { buildInvoicePdf } from '@/lib/pdf/buildInvoicePdf'
 import { logAudit } from '@/lib/audit'
+import { requireInternal, toResponse } from '@/lib/auth/internal'
+import {
+  serializeBusinessProfile,
+  serializeClient,
+  serializeInvoice,
+} from '@/lib/serialize'
 
 export const runtime = 'nodejs'
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+type Ctx = { params: Promise<{ id: string }> }
 
-  const { data: invoice } = await db.from('invoices').select('*').eq('id', id).single()
-  if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
-  if (invoice.status !== 'draft') {
-    return NextResponse.json({ error: 'Only draft invoices can be finalized' }, { status: 409 })
-  }
-
-  const { count } = await db.from('invoice_items').select('*', { count: 'exact', head: true }).eq('invoice_id', id)
-  if (!count) return NextResponse.json({ error: 'Invoice has no items' }, { status: 400 })
-
-  const { data: profile, error: pErr } = await db.from('business_profile').select('*').eq('id', 1).single()
-  if (pErr || !profile) return NextResponse.json({ error: 'Business profile missing' }, { status: 500 })
-  const { data: client, error: cErr } = await db.from('clients').select('*').eq('id', invoice.client_id).single()
-  if (cErr || !client) return NextResponse.json({ error: 'Client missing' }, { status: 500 })
-
-  const { data: number, error: nErr } = await db.rpc('allocate_invoice_number')
-  if (nErr) return NextResponse.json({ error: nErr.message }, { status: 500 })
-
-  const { data: updated, error } = await db
-    .from('invoices')
-    .update({
-      invoice_number: number,
-      status: 'finalized',
-      business_snapshot: profile,
-      client_snapshot: client,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  await logAudit({ action: 'invoice.finalize', entityType: 'invoice', entityId: id, metadata: { invoice_number: number, total: updated.total } })
-
-  // Notify the team by email. A failure here must never undo or fail the
-  // finalization itself — the invoice number is already allocated.
+export async function POST(_req: Request, { params }: Ctx) {
   try {
-    const session = await auth()
-    const built = await buildInvoicePdf(id)
-    if (built.ok) {
-      await sendInvoiceGeneratedEmail({
-        invoice: built.invoice,
-        client: built.client,
-        pdf: built.buffer,
-        filename: built.filename,
-        generatedBy: session?.user?.email ?? null,
-      })
-    } else {
-      console.error(`Invoice ${number}: could not build PDF for notification email: ${built.error}`)
-    }
-  } catch (e) {
-    console.error(`Invoice ${number}: notification email failed`, e)
-  }
+    const actor = await requireInternal()
+    const { id } = await params
 
-  return NextResponse.json({ invoice: updated })
+    const invoice = await db.invoice.findUnique({
+      where: { id },
+      select: { id: true, status: true, clientId: true, _count: { select: { items: true } } },
+    })
+    if (!invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+    if (invoice.status !== 'draft') {
+      return NextResponse.json(
+        { error: 'Only draft invoices can be finalized' },
+        { status: 409 },
+      )
+    }
+    if (invoice._count.items === 0) {
+      return NextResponse.json({ error: 'Invoice has no items' }, { status: 400 })
+    }
+
+    const [profile, client] = await Promise.all([
+      db.businessProfile.findUnique({ where: { id: 1 } }),
+      db.client.findUnique({ where: { id: invoice.clientId } }),
+    ])
+    if (!profile) return NextResponse.json({ error: 'Business profile missing' }, { status: 500 })
+    if (!client) return NextResponse.json({ error: 'Client missing' }, { status: 500 })
+
+    const updated = await db.$transaction(async (tx) => {
+      // allocate_invoice_number() is plpgsql: UPDATE ... RETURNING takes a row
+      // lock, so two concurrent finalizations can never receive the same
+      // number. NEVER replace this with a read-then-write in JS — that
+      // reintroduces exactly the race the function exists to prevent.
+      const rows = await tx.$queryRaw<{ allocate_invoice_number: string }[]>`
+        SELECT allocate_invoice_number()
+      `
+      const invoiceNumber = rows[0]?.allocate_invoice_number
+      if (!invoiceNumber) throw new Error('Could not allocate an invoice number')
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          invoiceNumber,
+          status: 'finalized',
+          // Frozen in the SERIALIZED shape, which is what buildInvoicePdf
+          // reads. Editing the business profile or the client later must never
+          // change a document that has already gone out. Never backfill these.
+          businessSnapshot: serializeBusinessProfile(profile),
+          clientSnapshot: serializeClient(client),
+        },
+      })
+    })
+
+    await logAudit({
+      action: 'invoice.finalize',
+      entityType: 'invoice',
+      entityId: id,
+      metadata: { invoice_number: updated.invoiceNumber, total: num(updated.total) },
+    })
+
+    // Notify the team. A failure here must never undo the finalization — the
+    // invoice number is already allocated and cannot be handed back.
+    try {
+      const built = await buildInvoicePdf(id)
+      if (built.ok) {
+        await sendInvoiceGeneratedEmail({
+          invoice: built.invoice,
+          client: built.client,
+          pdf: built.buffer,
+          filename: built.filename,
+          generatedBy: actor.email,
+        })
+      } else {
+        console.error(
+          `Invoice ${updated.invoiceNumber}: could not build PDF for notification: ${built.error}`,
+        )
+      }
+    } catch (e) {
+      console.error(`Invoice ${updated.invoiceNumber}: notification email failed`, e)
+    }
+
+    return NextResponse.json({ invoice: serializeInvoice(updated) })
+  } catch (error) {
+    return toResponse(error)
+  }
 }

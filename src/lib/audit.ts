@@ -1,12 +1,25 @@
 import 'server-only'
+import type { ActorType } from '@/generated/prisma/client'
 
-export type AuditEntityType = 'invoice' | 'client' | 'expense' | 'settings'
+export type AuditEntityType =
+  | 'invoice'
+  | 'client'
+  | 'expense'
+  | 'settings'
+  | 'project'
+  | 'contact'
+  | 'timeline_entry'
+  | 'client_token'
 
 export interface AuditInput {
   action: string // e.g. 'invoice.finalize', 'client.create'
   entityType?: AuditEntityType
   entityId?: string | number | null
   metadata?: Record<string, unknown>
+  // Which side of the trust boundary acted. Clients write audit rows too now
+  // (token exchange, feedback submission), so this is recorded explicitly
+  // rather than inferred from whether actorEmail happens to be set.
+  actorType?: ActorType
   // Override the actor/ip instead of reading them from the request context.
   // Used by tests; production callers omit these.
   actorEmail?: string | null
@@ -18,14 +31,15 @@ export interface AuditInput {
 // keep it free of heavy/server-only imports.
 export function buildAuditRow(
   input: AuditInput,
-  ctx: { actorEmail?: string | null; ip?: string | null } = {}
+  ctx: { actorEmail?: string | null; ip?: string | null } = {},
 ) {
   return {
-    actor_email: input.actorEmail ?? ctx.actorEmail ?? null,
+    actorType: input.actorType ?? ('internal' as ActorType),
+    actorEmail: input.actorEmail ?? ctx.actorEmail ?? null,
     action: input.action,
-    entity_type: input.entityType ?? null,
-    entity_id: input.entityId != null ? String(input.entityId) : null,
-    metadata: input.metadata ?? null,
+    entityType: input.entityType ?? null,
+    entityId: input.entityId != null ? String(input.entityId) : null,
+    metadata: (input.metadata ?? null) as never,
     ip: input.ip ?? ctx.ip ?? null,
   }
 }
@@ -52,13 +66,16 @@ export async function logAudit(input: AuditInput): Promise<void> {
   try {
     const [{ auth }, { db }, ip] = await Promise.all([
       import('@/auth'),
-      import('@/lib/supabase'),
+      import('@/lib/db'),
       requestIp(),
     ])
-    const session = await auth()
-    const row = buildAuditRow(input, { actorEmail: session?.user?.email ?? null, ip })
-    const { error } = await db.from('audit_logs').insert(row)
-    if (error) console.error(`audit: failed to write '${input.action}':`, error.message)
+    // A client-authored action has no NextAuth session; don't attribute one.
+    const session = input.actorType === 'client' ? null : await auth()
+    const row = buildAuditRow(input, {
+      actorEmail: session?.user?.email ?? null,
+      ip,
+    })
+    await db.auditLog.create({ data: row })
   } catch (e) {
     console.error(`audit: failed to write '${input.action}':`, e)
   }

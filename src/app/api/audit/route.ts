@@ -1,39 +1,57 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
-import { db } from '@/lib/supabase'
-import { isAuditAdmin } from '@/lib/env'
+import { db } from '@/lib/db'
 import { pageCount, parsePagination } from '@/lib/pagination'
+import { requireAuditAdmin, toResponse } from '@/lib/auth/internal'
+import type { Prisma } from '@/generated/prisma/client'
 
+// AUDIT_ADMINS is a narrower capability than "is internal" — every teammate can
+// use the app, but only admins can read the trail of who did what. This route
+// is the control; the /audit page's check only decides what to render.
 export async function GET(req: Request) {
-  const session = await auth()
-  if (!isAuditAdmin(session?.user?.email)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  try {
+    await requireAuditAdmin()
+
+    const params = new URL(req.url).searchParams
+    const { page, pageSize, from } = parsePagination(params)
+
+    const actor = params.get('actor')?.trim()
+    const action = params.get('action')?.trim()
+    const entityType = params.get('entityType')?.trim()
+
+    const where: Prisma.AuditLogWhereInput = {
+      ...(actor ? { actorEmail: { contains: actor, mode: 'insensitive' } } : {}),
+      ...(action ? { action } : {}),
+      ...(entityType ? { entityType } : {}),
+    }
+
+    const [rows, total] = await Promise.all([
+      db.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: from,
+        take: pageSize,
+      }),
+      db.auditLog.count({ where }),
+    ])
+
+    return NextResponse.json({
+      logs: rows.map((r) => ({
+        id: r.id,
+        created_at: r.createdAt.toISOString(),
+        actor_type: r.actorType,
+        actor_email: r.actorEmail,
+        action: r.action,
+        entity_type: r.entityType,
+        entity_id: r.entityId,
+        metadata: r.metadata,
+        ip: r.ip,
+      })),
+      total,
+      page,
+      pageSize,
+      pageCount: pageCount(total, pageSize),
+    })
+  } catch (error) {
+    return toResponse(error)
   }
-
-  const params = new URL(req.url).searchParams
-  const { page, pageSize, from, to } = parsePagination(params)
-
-  let query = db
-    .from('audit_logs')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-
-  const actor = params.get('actor')?.trim()
-  const action = params.get('action')?.trim()
-  const entityType = params.get('entityType')?.trim()
-  if (actor) query = query.ilike('actor_email', `%${actor}%`)
-  if (action) query = query.eq('action', action)
-  if (entityType) query = query.eq('entity_type', entityType)
-
-  const { data, error, count } = await query.range(from, to)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  const total = count ?? 0
-  return NextResponse.json({
-    logs: data,
-    total,
-    page,
-    pageSize,
-    pageCount: pageCount(total, pageSize),
-  })
 }

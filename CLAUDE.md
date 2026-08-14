@@ -178,6 +178,12 @@ saying why; never leave the run red.
 - Four ported components call `setState` inside an effect
   (`react-hooks/set-state-in-effect`, downgraded to a warning). The fix is to
   remount the modals with a `key` prop instead of syncing state. Clean up when
-  those components are rewired to Prisma, then restore the rule to `error`.
-- The 17 files importing `@/lib/supabase` are the Step 2 rewrite surface. They
-  are expected to fail `tsc` until then.
+  those components are next touched, then restore the rule to `error`.
+- The API returns **snake_case** JSON (`invoice.invoice_number`) while Prisma
+  models are camelCase. `src/lib/serialize.ts` maps between them and is the only
+  place `Decimal` becomes `number` and `Date` becomes a string. This preserved
+  the contract the UI components were written against, so the Prisma port
+  touched no frontend code. If a component renders `[object Object]` or `NaN`,
+  a field is missing from a mapper.
+- `src/lib/types.ts` holds the API DTO shapes. It is the response contract, not
+  the database schema — Prisma owns the latter.

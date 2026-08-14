@@ -363,16 +363,16 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
 
         <Card title="Extras">
           <div className="flex flex-col gap-4">
-            <Field label="Payment link" error={errors.payment_link}>
+            <Field label="Payment link (optional)" error={errors.payment_link}>
               <Input
                 type="url"
                 value={form.payment_link}
                 onChange={set('payment_link')}
-                placeholder="https:// … optional"
+                placeholder="https://…"
               />
             </Field>
-            <Field label="Notes" error={errors.notes}>
-              <Textarea value={form.notes} onChange={set('notes')} placeholder="Optional notes" />
+            <Field label="Notes (optional)" error={errors.notes}>
+              <Textarea value={form.notes} onChange={set('notes')} placeholder="Anything the client should see on the invoice" />
             </Field>
           </div>
         </Card>

@@ -1,177 +1,221 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/supabase'
+import { db, num } from '@/lib/db'
 import { invoiceInput } from '@/lib/validation'
 import { computeTotals, lineBreakdown, preTaxUnitPrice, round2 } from '@/lib/money'
 import { logAudit } from '@/lib/audit'
 import { pageCount, parsePagination } from '@/lib/pagination'
-import { sanitizeIlike } from '@/lib/search'
 import { todayISO } from '@/lib/dates'
+import { requireInternal, toResponse } from '@/lib/auth/internal'
+import { serializeInvoice, serializeInvoiceListRow } from '@/lib/serialize'
+import { ensureDefaultProject } from '@/lib/projects'
+import type { InvoiceStatus, Prisma } from '@/generated/prisma/client'
 
-const LIST_COLUMNS =
-  'id, invoice_number, issue_date, due_date, status, currency, total, created_at, updated_at, clients(name)'
+type MoneyRow = { currency: string; total: { toNumber(): number } }
 
-type MoneyRow = { currency: string; total: number | string }
-
-// Sum a set of rows into a { currency: amount } map, rounded to 2dp.
+// Sum rows into a { currency: amount } map, rounded to 2dp.
 function sumByCurrency(rows: MoneyRow[]): Record<string, number> {
   const out: Record<string, number> = {}
-  for (const r of rows) out[r.currency] = round2((out[r.currency] ?? 0) + Number(r.total))
+  for (const r of rows) out[r.currency] = round2((out[r.currency] ?? 0) + num(r.total))
   return out
 }
 
-// The summary cards must reflect the WHOLE dataset, independent of the page or
-// the active filter, so they come from their own targeted queries.
+// The summary cards reflect the WHOLE dataset, independent of the page or the
+// active filter, so they come from their own queries rather than the page slice.
 async function loadStats(today: string) {
   const [y, m] = today.split('-').map(Number)
-  const monthStart = `${y}-${String(m).padStart(2, '0')}-01`
-  const nextMonthStart = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`
+  const monthStart = new Date(Date.UTC(y!, m! - 1, 1))
+  const nextMonthStart = new Date(Date.UTC(m === 12 ? y! + 1 : y!, m === 12 ? 0 : m!, 1))
+  const todayDate = new Date(`${today}T00:00:00.000Z`)
 
-  const [
-    { data: finalized },
-    { data: paidMonth },
-    { data: paidAll },
-    { count: totalCount },
-    { count: draftCount },
-    { count: cancelledCount },
-  ] = await Promise.all([
-    db.from('invoices').select('currency, total, due_date').eq('status', 'finalized'),
-    db.from('invoices').select('currency, total').eq('status', 'paid').gte('updated_at', monthStart).lt('updated_at', nextMonthStart),
-    db.from('invoices').select('currency, total, amount_received, tds_amount').eq('status', 'paid'),
-    db.from('invoices').select('*', { count: 'exact', head: true }),
-    db.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-    db.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'cancelled'),
-  ])
+  const [finalized, paidMonth, paidAll, totalCount, draftCount, cancelledCount] =
+    await Promise.all([
+      db.invoice.findMany({
+        where: { status: 'finalized' },
+        select: { currency: true, total: true, dueDate: true },
+      }),
+      db.invoice.findMany({
+        where: { status: 'paid', updatedAt: { gte: monthStart, lt: nextMonthStart } },
+        select: { currency: true, total: true },
+      }),
+      db.invoice.findMany({
+        where: { status: 'paid' },
+        select: { currency: true, total: true, amountReceived: true, tdsAmount: true },
+      }),
+      db.invoice.count(),
+      db.invoice.count({ where: { status: 'draft' } }),
+      db.invoice.count({ where: { status: 'cancelled' } }),
+    ])
 
-  const finalizedRows = finalized ?? []
-  const paidRows = paidAll ?? []
-  const overdueRows = finalizedRows.filter((r) => (r.due_date as string) < today)
+  const overdueRows = finalized.filter((r) => r.dueDate < todayDate)
 
   // Cash actually received and TDS withheld, per currency. Invoices marked paid
   // before payment recording existed have no amount_received — treat those as
   // received in full (total minus any recorded TDS).
   const received: Record<string, number> = {}
   const tds: Record<string, number> = {}
-  for (const r of paidRows) {
-    const tdsAmt = Number(r.tds_amount ?? 0)
-    const recv = r.amount_received == null ? Number(r.total) - tdsAmt : Number(r.amount_received)
+  for (const r of paidAll) {
+    const tdsAmt = num(r.tdsAmount)
+    const recv = r.amountReceived == null ? num(r.total) - tdsAmt : num(r.amountReceived)
     received[r.currency] = round2((received[r.currency] ?? 0) + recv)
     if (tdsAmt) tds[r.currency] = round2((tds[r.currency] ?? 0) + tdsAmt)
   }
 
   return {
-    outstanding: sumByCurrency(finalizedRows),
+    outstanding: sumByCurrency(finalized),
     overdue: sumByCurrency(overdueRows),
     overdueCount: overdueRows.length,
-    paidThisMonth: sumByCurrency(paidMonth ?? []),
-    totalCount: totalCount ?? 0,
+    paidThisMonth: sumByCurrency(paidMonth),
+    totalCount,
     // Issued documents only: drafts and cancelled invoices are excluded.
-    issuedCount: (totalCount ?? 0) - (draftCount ?? 0) - (cancelledCount ?? 0),
-    draftCount: draftCount ?? 0,
-    cancelledCount: cancelledCount ?? 0,
-    invoiced: sumByCurrency([...finalizedRows, ...paidRows]),
+    issuedCount: totalCount - draftCount - cancelledCount,
+    draftCount,
+    cancelledCount,
+    invoiced: sumByCurrency([...finalized, ...paidAll]),
     received,
     tds,
   }
 }
 
 export async function GET(req: Request) {
-  const params = new URL(req.url).searchParams
-  const { page, pageSize, from, to } = parsePagination(params)
-  const status = params.get('status') ?? 'all'
-  // "Overdue" and the month boundary depend on the current day. The client sends
-  // the day it is actually showing (its own timezone) so the server-side filter
-  // agrees with the "Overdue" badges the browser renders; fall back to the
-  // server's day for direct/unparameterised calls.
-  const clientToday = params.get('today')
-  const today = clientToday && /^\d{4}-\d{2}-\d{2}$/.test(clientToday) ? clientToday : todayISO()
+  try {
+    await requireInternal()
 
-  let query = db.from('invoices').select(LIST_COLUMNS, { count: 'exact' })
+    const params = new URL(req.url).searchParams
+    const { page, pageSize, from } = parsePagination(params)
+    const status = params.get('status') ?? 'all'
 
-  // Status tab → server-side filter. "overdue" is derived (finalized + past due).
-  if (status === 'overdue') {
-    query = query.eq('status', 'finalized').lt('due_date', today)
-  } else if (status !== 'all') {
-    query = query.eq('status', status)
+    // "Overdue" and the month boundary depend on the current day. The client
+    // sends the day it is actually showing (its own timezone) so the server
+    // filter agrees with the "Overdue" badges the browser renders.
+    const clientToday = params.get('today')
+    const today =
+      clientToday && /^\d{4}-\d{2}-\d{2}$/.test(clientToday) ? clientToday : todayISO()
+
+    const where: Prisma.InvoiceWhereInput = {}
+    if (status === 'overdue') {
+      where.status = 'finalized'
+      where.dueDate = { lt: new Date(`${today}T00:00:00.000Z`) }
+    } else if (status !== 'all') {
+      where.status = status as InvoiceStatus
+    }
+
+    // Search matches the invoice number OR the client name. The Supabase
+    // version resolved client ids first and interpolated them into an `in()`
+    // filter; a relation filter does it in one query with no id list.
+    const q = params.get('q')?.trim()
+    if (q) {
+      where.OR = [
+        { invoiceNumber: { contains: q, mode: 'insensitive' } },
+        { client: { name: { contains: q, mode: 'insensitive' } } },
+      ]
+    }
+
+    // The "All" tab orders by invoice number descending with unnumbered drafts
+    // on top; every other tab keeps newest-created first.
+    const orderBy: Prisma.InvoiceOrderByWithRelationInput[] =
+      status === 'all'
+        ? [{ invoiceNumber: { sort: 'desc', nulls: 'first' } }, { createdAt: 'desc' }]
+        : [{ createdAt: 'desc' }]
+
+    const [rows, total, stats] = await Promise.all([
+      db.invoice.findMany({
+        where,
+        orderBy,
+        skip: from,
+        take: pageSize,
+        select: {
+          id: true,
+          invoiceNumber: true,
+          issueDate: true,
+          dueDate: true,
+          status: true,
+          currency: true,
+          total: true,
+          createdAt: true,
+          updatedAt: true,
+          client: { select: { name: true } },
+        },
+      }),
+      db.invoice.count({ where }),
+      loadStats(today),
+    ])
+
+    return NextResponse.json({
+      invoices: rows.map(serializeInvoiceListRow),
+      total,
+      page,
+      pageSize,
+      pageCount: pageCount(total, pageSize),
+      stats,
+    })
+  } catch (error) {
+    return toResponse(error)
   }
-
-  // Search matches the invoice number OR the client name. Client name lives on a
-  // joined table, so resolve matching client ids first, then OR them in.
-  const q = sanitizeIlike(params.get('q'))
-  if (q) {
-    const { data: clientMatches } = await db.from('clients').select('id').ilike('name', `%${q}%`)
-    const ids = (clientMatches ?? []).map((c) => c.id)
-    const orParts = [`invoice_number.ilike.*${q}*`]
-    if (ids.length) orParts.push(`client_id.in.(${ids.join(',')})`)
-    query = query.or(orParts.join(','))
-  }
-
-  // The "All" tab is ordered by invoice number descending, with unnumbered
-  // drafts on top; every other tab keeps newest-created first.
-  if (status === 'all') {
-    query = query
-      .order('invoice_number', { ascending: false, nullsFirst: true })
-      .order('created_at', { ascending: false })
-  } else {
-    query = query.order('created_at', { ascending: false })
-  }
-
-  const [{ data, error, count }, stats] = await Promise.all([query.range(from, to), loadStats(today)])
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  const total = count ?? 0
-  return NextResponse.json({
-    invoices: data,
-    total,
-    page,
-    pageSize,
-    pageCount: pageCount(total, pageSize),
-    stats,
-  })
 }
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const parsed = invoiceInput.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid input', issues: parsed.error.flatten().fieldErrors }, { status: 400 })
-  }
-  const { items: enteredItems, ...inv } = parsed.data
-  // Totals are computed from the ENTERED prices: computeTotals splits tax per
-  // line, so a GST-inclusive line sums back to exactly what was typed.
-  const totals = computeTotals(enteredItems, inv.tax_rate)
+  try {
+    await requireInternal()
 
-  const { data: invoice, error } = await db
-    .from('invoices')
-    .insert({
-      ...inv,
-      payment_link: inv.payment_link || null,
-      notes: inv.notes || null,
-      tax_label: inv.tax_label || null,
-      subtotal: totals.subtotal,
-      tax_amount: totals.taxAmount,
-      total: totals.total,
+    const parsed = invoiceInput.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      )
+    }
+    const { items: enteredItems, ...inv } = parsed.data
+
+    // Totals are computed from the ENTERED prices: computeTotals splits tax per
+    // line, so a GST-inclusive line sums back to exactly what was typed.
+    const totals = computeTotals(enteredItems, inv.tax_rate)
+
+    // One transaction. The Supabase version inserted the invoice, then the
+    // items, and on item failure issued a manual delete as a "rollback" — a
+    // crash between the two left a headless invoice. That is no longer possible.
+    const invoice = await db.$transaction(async (tx) => {
+      const projectId = await ensureDefaultProject(tx, inv.client_id)
+
+      return tx.invoice.create({
+        data: {
+          clientId: inv.client_id,
+          projectId,
+          issueDate: new Date(`${inv.issue_date}T00:00:00.000Z`),
+          dueDate: new Date(`${inv.due_date}T00:00:00.000Z`),
+          currency: inv.currency,
+          taxLabel: inv.tax_label || null,
+          taxRate: inv.tax_rate,
+          paymentLink: inv.payment_link || null,
+          notes: inv.notes || null,
+          subtotal: totals.subtotal,
+          taxAmount: totals.taxAmount,
+          total: totals.total,
+          items: {
+            create: enteredItems.map((it, i) => ({
+              description: it.description,
+              period: it.period || null,
+              qty: it.qty,
+              unitPrice: preTaxUnitPrice(it.unit_price, it.gst_included, inv.tax_rate),
+              gstIncluded: it.gst_included,
+              enteredUnitPrice: it.unit_price,
+              // Same per-line net computeTotals used, so line amounts sum to subtotal.
+              amount: lineBreakdown(it, inv.tax_rate).net,
+              sortOrder: i,
+            })),
+          },
+        },
+      })
     })
-    .select()
-    .single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const rows = enteredItems.map((it, i) => ({
-    invoice_id: invoice.id,
-    description: it.description,
-    period: it.period || null,
-    qty: it.qty,
-    unit_price: preTaxUnitPrice(it.unit_price, it.gst_included, inv.tax_rate),
-    gst_included: it.gst_included,
-    entered_unit_price: it.unit_price,
-    // Same per-line net used by computeTotals, so line amounts sum to subtotal.
-    amount: lineBreakdown(it, inv.tax_rate).net,
-    sort_order: i,
-  }))
-  const { error: itemsError } = await db.from('invoice_items').insert(rows)
-  if (itemsError) {
-    await db.from('invoices').delete().eq('id', invoice.id) // rollback
-    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+    await logAudit({
+      action: 'invoice.create',
+      entityType: 'invoice',
+      entityId: invoice.id,
+      metadata: { total: num(invoice.total), currency: invoice.currency },
+    })
+
+    return NextResponse.json({ invoice: serializeInvoice(invoice) }, { status: 201 })
+  } catch (error) {
+    return toResponse(error)
   }
-  await logAudit({ action: 'invoice.create', entityType: 'invoice', entityId: invoice.id, metadata: { total: invoice.total, currency: invoice.currency } })
-  return NextResponse.json({ invoice }, { status: 201 })
 }
