@@ -104,7 +104,13 @@ const SUMMARY_CARDS: { label: string; field: keyof CurrencyBucket }[] = [
 
 export function FinancialsDashboard() {
   const [sel, setSel] = useState<PeriodSel>(defaultPeriod())
-  const [data, setData] = useState<FinancialsData | null>(null)
+  // The loaded payload remembers which period it is for. `data` below is null
+  // whenever that no longer matches the selected period, which renders the
+  // spinner without anyone having to clear state on the way into a fetch.
+  const [loaded, setLoaded] = useState<{ data: FinancialsData; from: string; to: string } | null>(
+    null
+  )
+  const [reloadKey, setReloadKey] = useState(0)
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Expense | null>(null)
@@ -143,30 +149,40 @@ export function FinancialsDashboard() {
   const { from, to } = periodRange(sel)
   const ready = sel.granularity !== 'custom' || (!!from && !!to && from <= to)
 
-  const loadFinancials = useCallback(
-    ({ silent = false }: { silent?: boolean } = {}) => {
-      if (!ready) {
-        if (!silent) setData(null)
-        return
-      }
-      if (!silent) setData(null)
-      fetch(`/api/financials?from=${from}&to=${to}`)
-        .then(async (r) => {
-          const d = await r.json()
-          if (!r.ok) {
-            toast(d.error ?? 'Failed to load financials', 'error')
-            return
-          }
-          setData(d)
-        })
-        .catch(() => toast('Failed to load financials', 'error'))
-    },
-    [ready, from, to, toast]
-  )
+  // Current only if it was fetched for the period on screen right now.
+  const data = loaded && loaded.from === from && loaded.to === to ? loaded.data : null
+
+  // Bump to force a refetch of the SAME period after a mutation.
+  const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
   useEffect(() => {
-    loadFinancials()
-  }, [loadFinancials])
+    if (!ready) return
+
+    // AbortController rather than a synchronous setData(null) before fetching.
+    // Two things fall out of that: no setState runs synchronously inside the
+    // effect (which is what the react-hooks rule objects to), and a slow
+    // response for a period you have already navigated away from can no longer
+    // land on top of a newer one — it is aborted instead.
+    const ac = new AbortController()
+
+    fetch(`/api/financials?from=${from}&to=${to}`, { signal: ac.signal })
+      .then(async (r) => {
+        const d = await r.json()
+        if (!r.ok) {
+          toast(d.error ?? 'Failed to load financials', 'error')
+          return
+        }
+        // Stored WITH the range it belongs to, so "is this data current?" is
+        // derived rather than tracked in a separate loading flag.
+        setLoaded({ data: d, from, to })
+      })
+      .catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        toast('Failed to load financials', 'error')
+      })
+
+    return () => ac.abort()
+  }, [ready, from, to, reloadKey, toast])
 
   const revenueRows: RevenueRow[] = useMemo(
     () =>
@@ -233,7 +249,7 @@ export function FinancialsDashboard() {
   }
 
   function onExpenseSaved() {
-    loadFinancials({ silent: true })
+    refresh()
     loadExpenseTypes()
   }
 
@@ -241,7 +257,19 @@ export function FinancialsDashboard() {
     if (!deleting) return
     const res = await fetch(`/api/expenses/${deleting.id}`, { method: 'DELETE' })
     if (res.ok) {
-      setData((prev) => (prev ? { ...prev, expenses: prev.expenses.filter((e) => e.id !== deleting.id) } : prev))
+      // Optimistic removal, now applied inside the range-tagged payload so the
+      // row disappears without waiting for a refetch.
+      setLoaded((prev) =>
+        prev
+          ? {
+              ...prev,
+              data: {
+                ...prev.data,
+                expenses: prev.data.expenses.filter((e) => e.id !== deleting.id),
+              },
+            }
+          : prev
+      )
       toast('Expense deleted')
     } else {
       toast('Failed to delete expense', 'error')
@@ -455,14 +483,19 @@ export function FinancialsDashboard() {
         </>
       )}
 
-      <ExpenseFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        initial={editing}
-        onSaved={onExpenseSaved}
-        knownTypes={knownTypes}
-        defaultCurrency={defaultCurrency}
-      />
+      {/* Mounted only while open and keyed by the record, so each open starts
+          from fresh state instead of an effect syncing props into state. */}
+      {modalOpen && (
+        <ExpenseFormModal
+          key={editing?.id ?? 'new'}
+          open
+          onClose={() => setModalOpen(false)}
+          initial={editing}
+          onSaved={onExpenseSaved}
+          knownTypes={knownTypes}
+          defaultCurrency={defaultCurrency}
+        />
+      )}
 
       <ConfirmDialog
         open={!!deleting}

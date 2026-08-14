@@ -171,7 +171,9 @@ export function InvoiceDetail({ id }: { id: string }) {
         />
       )}
 
-      {invoice.status === 'finalized' && (
+      {/* Mounted only while open, so each open starts from a fresh form rather
+          than relying on an effect to reset it. */}
+      {invoice.status === 'finalized' && paymentModalOpen && (
         <RecordPaymentModal
           invoice={{
             id: invoice.id,
@@ -179,7 +181,7 @@ export function InvoiceDetail({ id }: { id: string }) {
             total: Number(invoice.total),
             currency: invoice.currency,
           }}
-          open={paymentModalOpen}
+          open
           onClose={() => setPaymentModalOpen(false)}
           onSaved={(inv) => {
             setInvoice(inv)

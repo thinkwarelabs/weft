@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
@@ -36,15 +36,15 @@ export function ClientFormModal({ open, onClose, initial, onSaved }: {
   initial?: Client | null
   onSaved: (c: Client) => void
 }) {
-  const [form, setForm] = useState<FormState>(empty())
+  // No reset effect. The parent renders this only while open and keys it by the
+  // record being edited, so opening the form mounts a fresh component and these
+  // initialisers run again. Syncing props into state inside an effect causes the
+  // cascading render the react-hooks rule warns about, and leaves stale edits
+  // visible for one frame after reopening.
+  const [form, setForm] = useState<FormState>(() => (initial ? toForm(initial) : empty()))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
-
-  useEffect(() => {
-    setForm(initial ? toForm(initial) : empty())
-    setErrors({})
-  }, [initial, open])
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))

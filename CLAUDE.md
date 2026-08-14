@@ -166,19 +166,19 @@ instead. `Unsupported("tsvector")?` plus this rule is the correct trade.
 - Enforce security and business rules **server-side**, never only in the UI.
 - Run `npm run lint && npx tsc --noEmit && npm test` before every commit.
 
-**Lint must stay green.** The import zones in `eslint.config.mjs` are a security
-control, not a style preference — they are what stops client-facing code from
-importing the invoicing modules. A permanently red lint run is one nobody reads,
-and that is how a real boundary violation slips through unnoticed. If something
-unrelated starts failing, fix it or downgrade it explicitly with a comment
-saying why; never leave the run red.
+**Lint must stay green, with zero warnings.** The import zones in
+`eslint.config.mjs` are a security control, not a style preference — they are
+what stops client-facing code from importing the invoicing modules. A run with
+familiar noise in it is one nobody reads, and that is how a real boundary
+violation slips through unnoticed. If something unrelated starts failing, fix it
+or downgrade it explicitly with a comment saying why; never leave the run dirty.
+
+**Never sync props into state with an effect.** Render a form only while it is
+open and give it a `key`, so reopening mounts a fresh component and `useState`
+initialisers run again. `react-hooks/set-state-in-effect` is an `error`.
 
 ### Known debt
 
-- Four ported components call `setState` inside an effect
-  (`react-hooks/set-state-in-effect`, downgraded to a warning). The fix is to
-  remount the modals with a `key` prop instead of syncing state. Clean up when
-  those components are next touched, then restore the rule to `error`.
 - The API returns **snake_case** JSON (`invoice.invoice_number`) while Prisma
   models are camelCase. `src/lib/serialize.ts` maps between them and is the only
   place `Decimal` becomes `number` and `Date` becomes a string. This preserved

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field } from '@/components/ui/Field'
@@ -23,7 +23,12 @@ export function RecordPaymentModal({ invoice, open, onClose, onSaved }: {
   onClose: () => void
   onSaved: (inv: Invoice) => void
 }) {
-  const [paymentDate, setPaymentDate] = useState(todayISO())
+  // No reset effect. The parent renders this only while open and keys it by the
+  // record being edited, so opening the form mounts a fresh component and these
+  // initialisers run again. Syncing props into state inside an effect causes the
+  // cascading render the react-hooks rule warns about, and leaves stale edits
+  // visible for one frame after reopening.
+  const [paymentDate, setPaymentDate] = useState(todayISO)
   const [tds, setTds] = useState('0')
   const [received, setReceived] = useState(String(invoice.total))
   const [reference, setReference] = useState('')
@@ -31,16 +36,6 @@ export function RecordPaymentModal({ invoice, open, onClose, onSaved }: {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
-
-  useEffect(() => {
-    if (!open) return
-    setPaymentDate(todayISO())
-    setTds('0')
-    setReceived(String(invoice.total))
-    setReference('')
-    setReceivedTouched(false)
-    setErrors({})
-  }, [open, invoice.total])
 
   function onTdsChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value

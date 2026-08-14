@@ -15,33 +15,6 @@ const eslintConfig = defineConfig([
   ]),
 
   // -------------------------------------------------------------------------
-  // INHERITED DEBT — downgraded to a warning, deliberately.
-  //
-  // Four components ported from the Invoice app sync state inside an effect:
-  // three reset a modal's form when it opens, one kicks off a data fetch. The
-  // React Compiler rule flags all four. They work correctly today.
-  //
-  // Why warn and not error: the import zones below are a SECURITY control, and
-  // a lint run that is permanently red is one nobody reads. Keeping the run
-  // green is what makes a boundary violation visible.
-  //
-  // The correct fix for the modals is remounting via a `key` prop rather than
-  // syncing state in an effect. Do it when these components are rewired to
-  // Prisma in Step 2 (invoices/settings) and Step 7 (financials), then raise
-  // this back to "error".
-  //   - components/financials/ExpenseFormModal.tsx
-  //   - components/financials/FinancialsDashboard.tsx
-  //   - components/invoices/RecordPaymentModal.tsx
-  //   - components/settings/ClientFormModal.tsx
-  // -------------------------------------------------------------------------
-  {
-    files: ["src/components/**"],
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-    },
-  },
-
-  // -------------------------------------------------------------------------
   // TRUST BOUNDARY ENFORCEMENT
   //
   // Clients touch exactly one surface. These rules make that a build failure
