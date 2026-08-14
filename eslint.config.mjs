@@ -22,6 +22,10 @@ const eslintConfig = defineConfig([
   // eslint-disable — the import is telling you the design has drifted.
   // -------------------------------------------------------------------------
   {
+    // The whole client subtree, including its write endpoint at
+    // src/app/(client)/f/api/. The src/app/api/client/** entry is kept so the
+    // rule still applies if anyone reintroduces a route there — which they
+    // shouldn't, since the Path=/f cookie would never reach it.
     files: ["src/app/(client)/**", "src/app/api/client/**"],
     rules: {
       "no-restricted-imports": [
@@ -34,7 +38,16 @@ const eslintConfig = defineConfig([
                 "Client-facing code must not hold a Prisma client. Use the named functions in @/lib/client-scope, which resolve projectId from the verified cookie.",
             },
             {
-              group: ["**/auth", "**/auth.config", "@/auth", "@/lib/auth/internal"],
+              // Exact specifiers, not a glob. `**/auth` also matched
+              // @/lib/auth/client-token — the one auth module the client
+              // surface MUST use — so the rule was blocking correct code while
+              // saying the opposite in its message.
+              group: [
+                "@/auth",
+                "@/auth.config",
+                "@/lib/auth/internal",
+                "**/lib/auth/internal",
+              ],
               message:
                 "Clients do not have NextAuth sessions. Use @/lib/auth/client-token.",
             },

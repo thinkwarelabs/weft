@@ -7,6 +7,7 @@ import { formatDateLong } from '@/lib/dates'
 import type { Project } from '@/lib/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
 import { Timeline } from './Timeline'
+import { RequestFeedback } from './RequestFeedback'
 
 const STATUS_OPTIONS = [
   { value: 'onboarding', label: 'Onboarding' },
@@ -18,10 +19,12 @@ const STATUS_OPTIONS = [
 export function ProjectDetail({
   initialProject,
   clientName,
+  clientId,
   actorName,
 }: {
   initialProject: Project
   clientName: string
+  clientId: string
   /** Used to decide which entries show a Remove action; the server re-checks. */
   actorName: string
 }) {
@@ -135,6 +138,8 @@ export function ProjectDetail({
           value or API key into this platform. Link to where the secret lives instead.
         </p>
       </Card>
+
+      <RequestFeedback projectId={project.id} clientId={clientId} />
 
       <Timeline projectId={project.id} actorName={actorName} />
     </div>

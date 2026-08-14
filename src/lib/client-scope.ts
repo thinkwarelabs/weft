@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { readClientClaims } from "@/lib/auth/client-token";
+import { CLIENT_VISIBLE_KINDS } from "@/lib/timeline";
 
 // ---------------------------------------------------------------------------
 // THE CHOKEPOINT.
@@ -23,8 +24,9 @@ import { readClientClaims } from "@/lib/auth/client-token";
 //      exactly one surface.
 // ---------------------------------------------------------------------------
 
-/** Entry kinds a client is permitted to see. Allowlist — extend consciously. */
-const CLIENT_VISIBLE_KINDS = ["feedback", "milestone"] as const;
+// Allowlist of what a client may see, defined once in lib/timeline.ts and
+// guarded by a test that fails closed for any unknown kind. Importing it rather
+// than restating it means the two can never disagree about `note`.
 
 export interface ClientContext {
   projectId: string;

@@ -32,6 +32,7 @@ export default async function ProjectDetailPage({
         <ProjectDetail
           initialProject={serializeProject(project)}
           clientName={project.client.name}
+          clientId={project.client.id}
           actorName={actor.name ?? actor.email}
         />
       </div>

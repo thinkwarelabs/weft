@@ -76,6 +76,10 @@ token: *"the holder may leave feedback on project X until <date>"*.
 - The raw token is never stored, never logged, and never survives past the
   one-time exchange redirect. Only its SHA-256 is persisted.
 - The cookie is `Path=/f`, so the browser cannot send it to `/api/invoices`.
+- **The client surface is exactly the `/f` subtree** — page, token exchange, and
+  its write endpoint at `/f/api/feedback`. This follows from the cookie path: an
+  endpoint outside `/f` never receives the cookie and would 401 on every
+  submission. New client endpoints go under `/f`, never under `/api`.
 - `CLIENT_TOKEN_SECRET` is **not** `AUTH_SECRET`. Boot fails if they match.
 - The token row is re-read on **every** request, so revoking a link,
   deactivating a contact, or archiving a project takes effect immediately.
