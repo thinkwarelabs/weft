@@ -41,6 +41,39 @@ export interface Client {
   created_at: string
 }
 
+export type ProjectStatus = 'onboarding' | 'active' | 'paused' | 'closed'
+
+export interface ChecklistItemDto {
+  key: string
+  label: string
+  doneAt: string | null
+  doneByUserId: string | null
+}
+
+export interface Project {
+  id: string
+  client_id: string
+  name: string
+  slug: string
+  status: ProjectStatus
+  onboarding: ChecklistItemDto[]
+  onboarding_progress: { done: number; total: number; complete: boolean; percent: number }
+  created_at: string
+  updated_at: string
+  archived_at: string | null
+}
+
+/** A named human at a client — can be sent a feedback link. Not the billing email. */
+export interface ClientContact {
+  id: string
+  client_id: string
+  name: string
+  email: string
+  title: string | null
+  active: boolean
+  created_at: string
+}
+
 export interface Invoice {
   id: string
   invoice_number: string | null

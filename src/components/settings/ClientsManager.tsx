@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -147,7 +148,11 @@ export function ClientsManager() {
               <tbody>
                 {rows.map((c) => (
                   <tr key={c.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-sm border-b border-zinc-100">{c.name}</td>
+                    <td className="px-4 py-3 text-sm border-b border-zinc-100">
+                      <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
+                        {c.name}
+                      </Link>
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">{c.email || '—'}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
                       {[c.city, c.country].filter(Boolean).join(', ') || '—'}
@@ -179,7 +184,17 @@ export function ClientsManager() {
         </>
       )}
 
-      <ClientFormModal open={modalOpen} onClose={() => setModalOpen(false)} initial={editing} onSaved={reload} />
+      {/* Mounted only while open and keyed by the record, so each open starts
+          from fresh state instead of an effect syncing props into state. */}
+      {modalOpen && (
+        <ClientFormModal
+          key={editing?.id ?? 'new'}
+          open
+          onClose={() => setModalOpen(false)}
+          initial={editing}
+          onSaved={reload}
+        />
+      )}
 
       <ConfirmDialog
         open={!!archiving}

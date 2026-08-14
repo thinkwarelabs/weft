@@ -61,6 +61,46 @@ export const invoiceInput = z.object({
   items: z.array(invoiceItemInput).min(1, 'Add at least one item'),
 })
 
+// --- Projects & contacts (Step 3) -------------------------------------------
+
+export const PROJECT_STATUSES = ['onboarding', 'active', 'paused', 'closed'] as const
+
+export const projectInput = z.object({
+  client_id: z.string().min(1, 'Pick a client'),
+  name: z.string().trim().min(1, 'Name is required').max(120),
+  status: z.enum(PROJECT_STATUSES).optional().default('onboarding'),
+})
+
+// Separate from projectInput: a project's client can never change. Moving a
+// project between clients would silently re-scope every invoice, timeline entry
+// and access token hanging off it — so there is deliberately no path to do it.
+export const projectPatchInput = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(120).optional(),
+  status: z.enum(PROJECT_STATUSES).optional(),
+  archived: z.boolean().optional(),
+})
+
+export const checklistToggleInput = z.object({
+  key: z.string().trim().min(1),
+  done: z.boolean(),
+})
+
+// A ClientContact is a person who can be sent a feedback link. Distinct from
+// Client.billingEmail, which is where invoices go — never conflate them.
+export const clientContactInput = z.object({
+  client_id: z.string().min(1, 'Pick a client'),
+  name: z.string().trim().min(1, 'Name is required').max(120),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  title: optionalText,
+})
+
+export const clientContactPatchInput = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(120).optional(),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address').optional(),
+  title: optionalText,
+  active: z.boolean().optional(),
+})
+
 export const paymentInput = z.object({
   payment_date: isoDate,
   amount_received: z.number().min(0),
@@ -124,6 +164,9 @@ export const expenseInput = expenseObjectSchema.superRefine(requirePayerNameForP
 // responsible for checking the person/payer_name rule against the merged (existing + patch) data.
 export const expensePatchInput = expenseObjectSchema.partial()
 
+export type ProjectInput = z.infer<typeof projectInput>
+export type ProjectPatchInput = z.infer<typeof projectPatchInput>
+export type ClientContactInput = z.infer<typeof clientContactInput>
 export type ClientInput = z.infer<typeof clientInput>
 export type InvoiceItemInput = z.infer<typeof invoiceItemInput>
 export type InvoiceInput = z.infer<typeof invoiceInput>

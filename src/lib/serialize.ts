@@ -1,10 +1,13 @@
 import type {
   BusinessProfile,
   Client,
+  ClientContact,
   Expense,
   Invoice,
   InvoiceItem,
+  Project,
 } from '@/generated/prisma/client'
+import { checklistProgress, normalizeChecklist } from '@/lib/onboarding'
 
 // Prisma row -> API response shape.
 //
@@ -151,6 +154,37 @@ export function serializeInvoiceListRow(
     updated_at: ts(inv.updatedAt),
     // Supabase's join emitted `clients` (the table name). Keep the key.
     clients: inv.client ? { name: inv.client.name } : null,
+  }
+}
+
+export function serializeProject(p: Project) {
+  // The stored JSON is normalised on the way out, so a project created before a
+  // checklist step existed still reports the full list, and the UI never has to
+  // cope with a malformed column.
+  const onboarding = normalizeChecklist(p.onboarding)
+  return {
+    id: p.id,
+    client_id: p.clientId,
+    name: p.name,
+    slug: p.slug,
+    status: p.status,
+    onboarding,
+    onboarding_progress: checklistProgress(onboarding),
+    created_at: ts(p.createdAt),
+    updated_at: ts(p.updatedAt),
+    archived_at: tsOrNull(p.archivedAt),
+  }
+}
+
+export function serializeClientContact(c: ClientContact) {
+  return {
+    id: c.id,
+    client_id: c.clientId,
+    name: c.name,
+    email: c.email,
+    title: c.title,
+    active: c.active,
+    created_at: ts(c.createdAt),
   }
 }
 

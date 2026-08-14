@@ -1,5 +1,5 @@
 import "server-only";
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient, type Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { env } from "@/lib/env";
 
@@ -31,6 +31,19 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 //
 // Never do arithmetic on a Decimal and a number without converting first.
 // ---------------------------------------------------------------------------
+
+/**
+ * Write a typed value into a Json column.
+ *
+ * Prisma's `InputJsonValue` is structural and rejects an interface-typed array
+ * (no index signature), even though it serialises perfectly well. The cast is
+ * safe for any JSON-serialisable shape — keep it here, in one place, so the
+ * reason is written down once instead of `as unknown as` appearing at every
+ * call site.
+ */
+export function json<T>(value: T): Prisma.InputJsonValue {
+  return value as unknown as Prisma.InputJsonValue;
+}
 
 type DecimalLike = { toNumber(): number };
 

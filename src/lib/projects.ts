@@ -1,5 +1,6 @@
 import 'server-only'
-import { db } from '@/lib/db'
+import { db, json } from '@/lib/db'
+import { defaultChecklist } from '@/lib/onboarding'
 import type { Prisma } from '@/generated/prisma/client'
 
 // Invoice.projectId is REQUIRED — a nullable scope key is one bad query away
@@ -14,12 +15,33 @@ import type { Prisma } from '@/generated/prisma/client'
 
 const DEFAULT_PROJECT_NAME = 'General'
 
-function slugify(input: string): string {
+export function slugify(input: string): string {
   return input
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40)
+}
+
+/**
+ * A globally unique slug for a project, derived from the client and project
+ * names. Project.slug is unique across the whole table, so it must carry the
+ * client — two customers can both have a "Website Redesign".
+ *
+ * Used for internal URLs only. Client-facing routes never take an id or a slug;
+ * they read the project from the verified cookie. See lib/client-scope.ts.
+ */
+export async function uniqueProjectSlug(
+  tx: Prisma.TransactionClient,
+  clientName: string,
+  projectName: string,
+): Promise<string> {
+  const base = `${slugify(clientName)}-${slugify(projectName)}`.replace(/^-+|-+$/g, '') || 'project'
+  let slug = base
+  for (let i = 2; await tx.project.findUnique({ where: { slug }, select: { id: true } }); i++) {
+    slug = `${base}-${i}`
+  }
+  return slug
 }
 
 /**
@@ -46,20 +68,13 @@ export async function ensureDefaultProject(
     select: { name: true },
   })
 
-  // Project.slug is globally unique, so it must carry the client to avoid two
-  // customers colliding on "general".
-  const base = `${slugify(client.name)}-${slugify(DEFAULT_PROJECT_NAME)}`
-  let slug = base
-  for (let i = 2; await tx.project.findUnique({ where: { slug }, select: { id: true } }); i++) {
-    slug = `${base}-${i}`
-  }
-
   const created = await tx.project.create({
     data: {
       clientId,
       name: DEFAULT_PROJECT_NAME,
-      slug,
+      slug: await uniqueProjectSlug(tx, client.name, DEFAULT_PROJECT_NAME),
       status: 'active',
+      onboarding: json(defaultChecklist()),
     },
     select: { id: true },
   })
