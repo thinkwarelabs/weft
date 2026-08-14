@@ -7,7 +7,6 @@ import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { useToast } from '@/components/ui/Toast'
-import { formatDateLong } from '@/lib/dates'
 import type { ClientContact } from '@/lib/types'
 
 interface RequestRow {
@@ -19,12 +18,23 @@ interface RequestRow {
   requested_by: string
 }
 
-export function RequestFeedback({ projectId, clientId }: { projectId: string; clientId: string }) {
+export function RequestFeedback({
+  projectId,
+  clientId,
+  onChanged,
+}: {
+  projectId: string
+  clientId: string
+  /** Sending a request adds an item to the timeline, which is a sibling. */
+  onChanged: () => void
+}) {
   const [requests, setRequests] = useState<RequestRow[] | null>(null)
   const [contacts, setContacts] = useState<ClientContact[]>([])
   const [reloadKey, setReloadKey] = useState(0)
   const [open, setOpen] = useState(false)
   const { toast } = useToast()
+
+  const waiting = (requests ?? []).filter((r) => r.responded_at === null).length
 
   useEffect(() => {
     const ac = new AbortController()
@@ -63,29 +73,14 @@ export function RequestFeedback({ projectId, clientId }: { projectId: string; cl
         </p>
       )}
 
-      {requests && requests.length > 0 && (
-        <ul className="mt-4 flex flex-col divide-y divide-zinc-100">
-          {requests.map((r) => (
-            <li key={r.id} className="flex items-start justify-between gap-4 py-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-zinc-800">{r.prompt}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  {r.contact.name} · asked by {r.requested_by} ·{' '}
-                  {formatDateLong(r.created_at.slice(0, 10))}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                  r.responded_at
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-amber-200 bg-amber-50 text-amber-700'
-                }`}
-              >
-                {r.responded_at ? 'Answered' : 'Waiting'}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {/* The requests themselves are no longer listed here — they appear on the
+          timeline below, with each client reply nested under the thing it
+          answers. This card is just the action and its preconditions. */}
+      {waiting > 0 && (
+        <p className="mt-3 text-sm text-zinc-500">
+          {waiting === 1 ? '1 request is' : `${waiting} requests are`} still waiting for a reply —
+          see the timeline below.
+        </p>
       )}
 
       {open && (
@@ -96,6 +91,7 @@ export function RequestFeedback({ projectId, clientId }: { projectId: string; cl
           onSent={() => {
             setOpen(false)
             setReloadKey((k) => k + 1)
+            onChanged()
           }}
         />
       )}

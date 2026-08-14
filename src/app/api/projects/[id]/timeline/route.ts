@@ -23,13 +23,59 @@ export async function GET(_req: Request, { params }: Ctx) {
     const project = await db.project.findUnique({ where: { id }, select: { id: true } })
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
-    const entries = await db.timelineEntry.findMany({
-      where: { projectId: id },
-      orderBy: { createdAt: 'desc' },
-      include: AUTHOR_SELECT,
-    })
+    const [entries, requests] = await Promise.all([
+      db.timelineEntry.findMany({
+        where: { projectId: id },
+        orderBy: { createdAt: 'desc' },
+        include: AUTHOR_SELECT,
+      }),
+      // A feedback request is an event on this timeline — it just happens to
+      // live in its own table because it also carries the token and the
+      // recipient. Threading it here keeps the log readable as a conversation
+      // without duplicating the prompt into a second place.
+      db.feedbackRequest.findMany({
+        where: { projectId: id },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          contact: { select: { id: true, name: true, email: true } },
+          requestedBy: { select: { name: true, email: true } },
+        },
+      }),
+    ])
 
-    return NextResponse.json({ entries: entries.map(serializeTimelineEntry) })
+    // An answered request owns its reply, so that reply must not ALSO appear at
+    // the top level. Unsolicited feedback has no request and stays top-level.
+    const answerIds = new Set(requests.map((r) => r.answerId).filter(Boolean) as string[])
+    const byId = new Map(entries.map((e) => [e.id, e]))
+
+    const items = [
+      ...requests.map((r) => {
+        const answer = r.answerId ? byId.get(r.answerId) : undefined
+        return {
+          id: r.id,
+          kind: 'feedback_request' as const,
+          body: r.prompt,
+          author: {
+            kind: 'internal' as const,
+            name: r.requestedBy.name ?? r.requestedBy.email,
+          },
+          created_at: r.createdAt.toISOString(),
+          sent_to: r.contact.name,
+          answered_at: r.respondedAt?.toISOString() ?? null,
+          replies: answer ? [serializeTimelineEntry(answer)] : [],
+        }
+      }),
+      ...entries
+        .filter((e) => !answerIds.has(e.id))
+        .map((e) => ({
+          ...serializeTimelineEntry(e),
+          sent_to: null,
+          answered_at: null,
+          replies: [] as ReturnType<typeof serializeTimelineEntry>[],
+        })),
+    ].sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+    return NextResponse.json({ items })
   } catch (error) {
     return toResponse(error)
   }

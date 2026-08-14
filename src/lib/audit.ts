@@ -10,6 +10,8 @@ export type AuditEntityType =
   | 'contact'
   | 'timeline_entry'
   | 'client_token'
+  | 'idea'
+  | 'file'
 
 export interface AuditInput {
   action: string // e.g. 'invoice.finalize', 'client.create'

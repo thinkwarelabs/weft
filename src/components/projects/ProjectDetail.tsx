@@ -30,6 +30,8 @@ export function ProjectDetail({
 }) {
   const [project, setProject] = useState<Project>(initialProject)
   const [busyKey, setBusyKey] = useState<string | null>(null)
+  // Shared so a feedback request sent above shows up in the timeline below.
+  const [timelineSignal, setTimelineSignal] = useState(0)
   const { toast } = useToast()
 
   const progress = project.onboarding_progress
@@ -139,9 +141,13 @@ export function ProjectDetail({
         </p>
       </Card>
 
-      <RequestFeedback projectId={project.id} clientId={clientId} />
+      <RequestFeedback
+        projectId={project.id}
+        clientId={clientId}
+        onChanged={() => setTimelineSignal((n) => n + 1)}
+      />
 
-      <Timeline projectId={project.id} actorName={actorName} />
+      <Timeline projectId={project.id} actorName={actorName} reloadSignal={timelineSignal} />
     </div>
   )
 }
