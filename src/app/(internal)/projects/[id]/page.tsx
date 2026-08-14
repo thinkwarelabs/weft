@@ -10,7 +10,7 @@ export default async function ProjectDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireInternal()
+  const actor = await requireInternal()
   const { id } = await params
 
   const project = await db.project.findUnique({
@@ -32,6 +32,7 @@ export default async function ProjectDetailPage({
         <ProjectDetail
           initialProject={serializeProject(project)}
           clientName={project.client.name}
+          actorName={actor.name ?? actor.email}
         />
       </div>
     </>

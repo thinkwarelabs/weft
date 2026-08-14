@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
 export async function PATCH(req: Request, { params }: Ctx) {
   try {
-    await requireInternal()
+    const actor = await requireInternal()
     const { id } = await params
 
     const body = await req.json()
@@ -52,7 +52,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
     const existing = await db.project.findUnique({
       where: { id },
-      select: { id: true, name: true, archivedAt: true },
+      select: { id: true, name: true, status: true, archivedAt: true },
     })
     if (!existing) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
@@ -68,7 +68,28 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }
 
-    const project = await db.project.update({ where: { id }, data })
+    const statusChanged = d.status !== undefined && d.status !== existing.status
+
+    // A status change writes itself onto the timeline, in the same transaction
+    // as the change. The project's own history is part of the record, not
+    // something anyone has to remember to note down.
+    const project = await db.$transaction(async (tx) => {
+      const updated = await tx.project.update({ where: { id }, data })
+
+      if (statusChanged) {
+        await tx.timelineEntry.create({
+          data: {
+            projectId: id,
+            kind: 'status_change',
+            authorType: 'internal',
+            authorUserId: actor.id,
+            body: `Status changed from ${existing.status} to ${d.status}.`,
+          },
+        })
+      }
+
+      return updated
+    })
 
     await logAudit({
       action:

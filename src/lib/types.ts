@@ -74,6 +74,18 @@ export interface ClientContact {
   created_at: string
 }
 
+export type EntryKind = 'note' | 'feedback' | 'milestone' | 'status_change'
+
+export interface TimelineEntry {
+  id: string
+  project_id: string
+  kind: EntryKind
+  author_type: 'internal' | 'client'
+  author: { kind: 'internal' | 'client' | 'system'; name: string }
+  body: string
+  created_at: string
+}
+
 export interface Invoice {
   id: string
   invoice_number: string | null

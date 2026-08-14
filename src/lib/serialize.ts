@@ -6,6 +6,7 @@ import type {
   Invoice,
   InvoiceItem,
   Project,
+  TimelineEntry,
 } from '@/generated/prisma/client'
 import { checklistProgress, normalizeChecklist } from '@/lib/onboarding'
 
@@ -154,6 +155,34 @@ export function serializeInvoiceListRow(
     updated_at: ts(inv.updatedAt),
     // Supabase's join emitted `clients` (the table name). Keep the key.
     clients: inv.client ? { name: inv.client.name } : null,
+  }
+}
+
+/**
+ * A timeline entry with its author resolved.
+ *
+ * `authorUser` is selected for internal entries only. It carries an email, so
+ * this serializer must never be reachable from the client surface — client
+ * reads go through lib/client-scope.ts, which doesn't select it at all.
+ */
+export function serializeTimelineEntry(
+  e: TimelineEntry & {
+    authorUser?: { id: string; name: string | null; email: string } | null
+    authorContact?: { id: string; name: string } | null
+  },
+) {
+  return {
+    id: e.id,
+    project_id: e.projectId,
+    kind: e.kind,
+    author_type: e.authorType,
+    author: e.authorUser
+      ? { kind: 'internal' as const, name: e.authorUser.name ?? e.authorUser.email }
+      : e.authorContact
+        ? { kind: 'client' as const, name: e.authorContact.name }
+        : { kind: 'system' as const, name: 'Weft' },
+    body: e.body,
+    created_at: ts(e.createdAt),
   }
 }
 

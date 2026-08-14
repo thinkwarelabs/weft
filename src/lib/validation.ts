@@ -80,6 +80,14 @@ export const projectPatchInput = z.object({
   archived: z.boolean().optional(),
 })
 
+// Only kinds an internal user may author. `status_change` is written by the
+// system when a project's status changes, and `feedback` only ever arrives
+// through the client boundary — neither is accepted here.
+export const timelineEntryInput = z.object({
+  kind: z.enum(['note', 'milestone']),
+  body: z.string().trim().min(1, 'Write something').max(10_000, 'Too long'),
+})
+
 export const checklistToggleInput = z.object({
   key: z.string().trim().min(1),
   done: z.boolean(),

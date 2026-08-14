@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 import { formatDateLong } from '@/lib/dates'
 import type { Project } from '@/lib/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
+import { Timeline } from './Timeline'
 
 const STATUS_OPTIONS = [
   { value: 'onboarding', label: 'Onboarding' },
@@ -17,9 +18,12 @@ const STATUS_OPTIONS = [
 export function ProjectDetail({
   initialProject,
   clientName,
+  actorName,
 }: {
   initialProject: Project
   clientName: string
+  /** Used to decide which entries show a Remove action; the server re-checks. */
+  actorName: string
 }) {
   const [project, setProject] = useState<Project>(initialProject)
   const [busyKey, setBusyKey] = useState<string | null>(null)
@@ -132,12 +136,7 @@ export function ProjectDetail({
         </p>
       </Card>
 
-      <Card title="Coming next">
-        <p className="text-sm text-zinc-500">
-          The timeline lands in the next step — internal notes first, then client feedback
-          requested from this project&apos;s contacts.
-        </p>
-      </Card>
+      <Timeline projectId={project.id} actorName={actorName} />
     </div>
   )
 }
