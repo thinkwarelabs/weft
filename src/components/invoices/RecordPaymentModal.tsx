@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { DatePicker } from '@/components/legacy/DatePicker'
-import { Field } from '@/components/legacy/Field'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { useToast } from '@/components/legacy/Toast'
+import { Modal } from '@/components/ui/modal'
+import { toast } from 'sonner'
 import { todayISO } from '@/lib/dates'
 import { formatMoney, round2 } from '@/lib/money'
 import { Invoice } from '@/lib/types'
@@ -35,7 +35,6 @@ export function RecordPaymentModal({ invoice, open, onClose, onSaved }: {
   const [receivedTouched, setReceivedTouched] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   function onTdsChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value
@@ -79,11 +78,11 @@ export function RecordPaymentModal({ invoice, open, onClose, onSaved }: {
       const d = await res.json()
       onSaved(d.invoice)
       onClose()
-      toast('Payment recorded')
+      toast.success('Payment recorded')
     } else {
       const d = await res.json().catch(() => ({}))
       if (d.issues) setErrors(Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]])))
-      toast(d.error ?? 'Failed to record payment', 'error')
+      toast.error(d.error ?? 'Failed to record payment')
     }
   }
 

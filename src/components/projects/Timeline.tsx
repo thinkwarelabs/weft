@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { EmptyState } from '@/components/legacy/EmptyState'
-import { Spinner } from '@/components/legacy/Spinner'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import { cn } from '@/lib/cn'
 import { DELETE_WINDOW_MS } from '@/lib/timeline'
 import type { TimelineEntry } from '@/lib/types'
@@ -63,7 +63,6 @@ export function Timeline({
   const [saving, setSaving] = useState(false)
   // The clock, held in state and ticked, so render never calls Date.now().
   const [now, setNow] = useState(() => Date.now())
-  const { toast } = useToast()
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -74,10 +73,10 @@ export function Timeline({
       .then((d) => setItems(d.items ?? []))
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load the timeline', 'error')
+        toast.error('Failed to load the timeline')
       })
     return () => ac.abort()
-  }, [projectId, reloadKey, reloadSignal, toast])
+  }, [projectId, reloadKey, reloadSignal])
 
   useEffect(() => {
     // Ticks the delete window closed on screen without needing a reload.
@@ -100,7 +99,7 @@ export function Timeline({
       refresh()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast(d.error ?? 'Failed to save', 'error')
+      toast.error(d.error ?? 'Failed to save')
     }
   }
 
@@ -108,9 +107,9 @@ export function Timeline({
     const res = await fetch(`/api/timeline/${id}`, { method: 'DELETE' })
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
-      toast(d.error ?? 'Could not remove that entry', 'error')
+      toast.error(d.error ?? 'Could not remove that entry')
     } else {
-      toast('Removed')
+      toast.success('Removed')
     }
     refresh()
   }

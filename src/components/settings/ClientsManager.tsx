@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
-import { EmptyState } from '@/components/legacy/EmptyState'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { Pagination } from '@/components/legacy/Pagination'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { Pagination } from '@/components/ui/pagination'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { Client } from '@/lib/types'
 import { ClientFormModal } from './ClientFormModal'
 
@@ -25,7 +25,6 @@ export function ClientsManager() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
   const [archiving, setArchiving] = useState<Client | null>(null)
-  const { toast } = useToast()
 
   // Debounce the search box into `q`, resetting to the first page when it changes.
   useEffect(() => {
@@ -51,7 +50,7 @@ export function ClientsManager() {
         setPageCount(d.pageCount ?? 1)
       })
       .catch(() => {
-        if (!ignore) toast('Failed to load clients', 'error')
+        if (!ignore) toast.error('Failed to load clients')
       })
       .finally(() => {
         if (!ignore) setPending(false)
@@ -59,7 +58,7 @@ export function ClientsManager() {
     return () => {
       ignore = true
     }
-  }, [page, pageSize, q, reloadTick, toast])
+  }, [page, pageSize, q, reloadTick])
 
   function reload() {
     setPending(true)
@@ -95,10 +94,10 @@ export function ClientsManager() {
       body: JSON.stringify({ archived: true }),
     })
     if (res.ok) {
-      toast('Client archived')
+      toast.success('Client archived')
       reload()
     } else {
-      toast('Failed to archive client', 'error')
+      toast.error('Failed to archive client')
     }
   }
 

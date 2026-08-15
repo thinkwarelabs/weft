@@ -2,9 +2,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '@/components/legacy/EmptyState'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { cn } from '@/lib/cn'
 import type { Project, ProjectStatus } from '@/lib/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -28,7 +28,6 @@ const FILTERS: { value: 'all' | ProjectStatus; label: string }[] = [
 export function ProjectsList() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [filter, setFilter] = useState<'all' | ProjectStatus>('all')
-  const { toast } = useToast()
 
   useEffect(() => {
     const ac = new AbortController()
@@ -37,10 +36,10 @@ export function ProjectsList() {
       .then((d) => setRows(d.projects ?? []))
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load projects', 'error')
+        toast.error('Failed to load projects')
       })
     return () => ac.abort()
-  }, [toast])
+  }, [])
 
   if (!rows) {
     return (

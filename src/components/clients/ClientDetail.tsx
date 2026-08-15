@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '@/components/legacy/EmptyState'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { formatDateLong } from '@/lib/dates'
 import type { Client, ClientContact, Project } from '@/lib/types'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
@@ -18,7 +18,6 @@ export function ClientDetail({ client }: { client: Client }) {
   const [reloadKey, setReloadKey] = useState(0)
   const [projectModal, setProjectModal] = useState(false)
   const [contactModal, setContactModal] = useState<{ editing: ClientContact | null } | null>(null)
-  const { toast } = useToast()
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -36,10 +35,10 @@ export function ClientDetail({ client }: { client: Client }) {
       })
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load client details', 'error')
+        toast.error('Failed to load client details')
       })
     return () => ac.abort()
-  }, [client.id, reloadKey, toast])
+  }, [client.id, reloadKey])
 
   async function setContactActive(contact: ClientContact, active: boolean) {
     const res = await fetch(`/api/contacts/${contact.id}`, {
@@ -52,9 +51,9 @@ export function ClientDetail({ client }: { client: Client }) {
       // Deactivating is the revocation lever: the token check re-reads
       // contact.active on every request, so any open feedback session for this
       // person stops working on their next click.
-      toast(active ? 'Contact reactivated' : 'Contact deactivated — their feedback links stop working')
+      toast.success(active ? 'Contact reactivated' : 'Contact deactivated — their feedback links stop working')
     } else {
-      toast('Failed to update contact', 'error')
+      toast.error('Failed to update contact')
     }
   }
 

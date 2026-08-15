@@ -3,13 +3,13 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DatePicker } from '@/components/legacy/DatePicker'
-import { Field } from '@/components/legacy/Field'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/legacy/Select'
-import { Spinner } from '@/components/legacy/Spinner'
+import { Select } from '@/components/ui/select-field'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import { ClientPicker } from '@/components/invoices/ClientPicker'
 import { gstBreakdown, isIntraState } from '@/lib/gst'
 import { computeTotals, formatMoney } from '@/lib/money'
@@ -45,7 +45,6 @@ function makeRow(key: number): ItemRow {
 
 export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
   const router = useRouter()
-  const { toast } = useToast()
   const nextKey = useRef(1)
 
   const [loading, setLoading] = useState(true)
@@ -122,7 +121,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
         setLoading(false)
       } catch {
         if (active) {
-          toast('Failed to load invoice data', 'error')
+          toast.error('Failed to load invoice data')
           setLoading(false)
         }
       }
@@ -172,7 +171,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     }
     setErrors(errs)
     if (Object.keys(errs).length > 0) {
-      toast('Fix the highlighted fields', 'error')
+      toast.error('Fix the highlighted fields')
       return false
     }
     return true
@@ -217,7 +216,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
         ...Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]])),
       }))
     }
-    toast(d.error ?? 'Failed to save', 'error')
+    toast.error(d.error ?? 'Failed to save')
     return null
   }
 
@@ -227,7 +226,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
     const invoice = await persist()
     setSaving(null)
     if (invoice) {
-      toast('Draft saved')
+      toast.success('Draft saved')
       router.push(`/invoices/${invoice.id}`)
     }
   }
@@ -246,7 +245,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
       router.push(`/invoices/${invoice.id}?autodownload=1`)
     } else {
       const d = await res.json().catch(() => ({}))
-      toast(d.error ?? 'Failed to finalize', 'error')
+      toast.error(d.error ?? 'Failed to finalize')
     }
   }
 

@@ -2,8 +2,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { formatMoney } from '@/lib/money'
 import type { ChecklistProgress } from '@/lib/onboarding'
 
@@ -53,7 +53,6 @@ function daysSince(iso: string, now: number): number {
 export function Home() {
   const [data, setData] = useState<HomeData | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const { toast } = useToast()
 
   useEffect(() => {
     const ac = new AbortController()
@@ -62,10 +61,10 @@ export function Home() {
       .then(setData)
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load', 'error')
+        toast.error('Failed to load')
       })
     return () => ac.abort()
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000)

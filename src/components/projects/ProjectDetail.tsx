@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select } from '@/components/legacy/Select'
-import { useToast } from '@/components/legacy/Toast'
+import { Select } from '@/components/ui/select-field'
+import { toast } from 'sonner'
 import { formatDateLong } from '@/lib/dates'
 import type { Project } from '@/lib/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -32,7 +32,6 @@ export function ProjectDetail({
   const [busyKey, setBusyKey] = useState<string | null>(null)
   // Shared so a feedback request sent above shows up in the timeline below.
   const [timelineSignal, setTimelineSignal] = useState(0)
-  const { toast } = useToast()
 
   const progress = project.onboarding_progress
 
@@ -50,7 +49,7 @@ export function ProjectDetail({
       const d = await res.json()
       setProject(d.project)
     } else {
-      toast('Failed to update the checklist', 'error')
+      toast.error('Failed to update the checklist')
     }
   }
 
@@ -63,9 +62,9 @@ export function ProjectDetail({
     if (res.ok) {
       const d = await res.json()
       setProject(d.project)
-      toast('Status updated')
+      toast.success('Status updated')
     } else {
-      toast('Failed to update status', 'error')
+      toast.error('Failed to update status')
     }
   }
 

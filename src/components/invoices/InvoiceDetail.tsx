@@ -2,11 +2,11 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { Badge } from '@/components/legacy/Badge'
+import { Badge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { formatDateLong } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
 import { daysOverdue, isOverdue } from '@/lib/overdue'
@@ -49,7 +49,6 @@ export function InvoiceDetail({ id }: { id: string }) {
   const [busy, setBusy] = useState<'finalize' | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
-  const { toast } = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
   const downloaded = useRef(false)
@@ -84,9 +83,9 @@ export function InvoiceDetail({ id }: { id: string }) {
     const res = await fetch(`/api/invoices/${id}/finalize`, { method: 'POST' })
     setBusy(null)
     const d = await res.json().catch(() => ({}))
-    if (!res.ok) return toast(d.error ?? 'Something went wrong', 'error')
+    if (!res.ok) return toast.error(d.error ?? 'Something went wrong')
     setInvoice(d.invoice)
-    toast(`Invoice ${d.invoice.invoice_number} finalized`)
+    toast.success(`Invoice ${d.invoice.invoice_number} finalized`)
     const a = document.createElement('a')
     a.href = `${pdfUrl}?download=1`
     document.body.appendChild(a); a.click(); a.remove()
@@ -95,9 +94,9 @@ export function InvoiceDetail({ id }: { id: string }) {
   async function runConfirmedAction(path: string, successMsg: string) {
     const res = await fetch(`/api/invoices/${id}/${path}`, { method: 'POST' })
     const d = await res.json().catch(() => ({}))
-    if (!res.ok) return toast(d.error ?? 'Something went wrong', 'error')
+    if (!res.ok) return toast.error(d.error ?? 'Something went wrong')
     setInvoice(d.invoice)
-    toast(successMsg)
+    toast.success(successMsg)
   }
 
   const overdue = isOverdue(invoice.status, invoice.due_date)

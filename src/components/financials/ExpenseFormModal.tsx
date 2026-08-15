@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/legacy/Field'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { Select } from '@/components/legacy/Select'
+import { Modal } from '@/components/ui/modal'
+import { Select } from '@/components/ui/select-field'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import { todayISO } from '@/lib/dates'
 import { Expense } from '@/lib/types'
 
@@ -71,7 +71,6 @@ export function ExpenseFormModal({ open, onClose, initial, onSaved, knownTypes, 
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -99,11 +98,11 @@ export function ExpenseFormModal({ open, onClose, initial, onSaved, knownTypes, 
       const d = await res.json()
       onSaved(d.expense)
       onClose()
-      toast(initial ? 'Expense updated' : 'Expense added')
+      toast.success(initial ? 'Expense updated' : 'Expense added')
     } else {
       const d = await res.json().catch(() => ({}))
       if (d.issues) setErrors(Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]])))
-      toast(d.error ?? 'Failed to save', 'error')
+      toast.error(d.error ?? 'Failed to save')
     }
   }
 

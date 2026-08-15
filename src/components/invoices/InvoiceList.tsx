@@ -2,15 +2,15 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Badge } from '@/components/legacy/Badge'
+import { Badge } from '@/components/ui/status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
-import { EmptyState } from '@/components/legacy/EmptyState'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { Pagination } from '@/components/legacy/Pagination'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { Pagination } from '@/components/ui/pagination'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { cn } from '@/lib/cn'
 import { formatDateLong, todayISO } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
@@ -73,7 +73,6 @@ export function InvoiceList() {
   const [confirmDelete, setConfirmDelete] = useState<InvoiceListRow | null>(null)
   const [payingRow, setPayingRow] = useState<InvoiceListRow | null>(null)
   const router = useRouter()
-  const { toast } = useToast()
 
   // Debounce the search box into `q`, resetting to the first page on change.
   useEffect(() => {
@@ -104,7 +103,7 @@ export function InvoiceList() {
         setPageCount(d.pageCount ?? 1)
       })
       .catch(() => {
-        if (!ignore) toast('Failed to load invoices', 'error')
+        if (!ignore) toast.error('Failed to load invoices')
       })
       .finally(() => {
         if (!ignore) setPending(false)
@@ -112,7 +111,7 @@ export function InvoiceList() {
     return () => {
       ignore = true
     }
-  }, [page, pageSize, q, statusFilter, reloadTick, toast])
+  }, [page, pageSize, q, statusFilter, reloadTick])
 
   function reload() {
     setPending(true)
@@ -140,10 +139,10 @@ export function InvoiceList() {
     if (!confirmDelete) return
     const res = await fetch(`/api/invoices/${confirmDelete.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast('Invoice deleted')
+      toast.success('Invoice deleted')
       reload()
     } else {
-      toast('Failed to delete invoice', 'error')
+      toast.error('Failed to delete invoice')
     }
   }
 

@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Pagination } from '@/components/legacy/Pagination'
-import { Select } from '@/components/legacy/Select'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { Pagination } from '@/components/ui/pagination'
+import { Select } from '@/components/ui/select-field'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 
 interface AuditLogRow {
   id: string
@@ -73,7 +73,6 @@ export function AuditLog() {
   const [actor, setActor] = useState('')
   const [action, setAction] = useState('')
   const [entityType, setEntityType] = useState('')
-  const { toast } = useToast()
 
   // Refetch whenever the page or a filter changes. All setState happens in the
   // async callbacks; `pending` is flipped on by the handlers that trigger the
@@ -90,7 +89,7 @@ export function AuditLog() {
         if (!ignore) setData(d)
       })
       .catch(() => {
-        if (!ignore) toast('Failed to load audit log', 'error')
+        if (!ignore) toast.error('Failed to load audit log')
       })
       .finally(() => {
         if (!ignore) setPending(false)
@@ -98,7 +97,7 @@ export function AuditLog() {
     return () => {
       ignore = true
     }
-  }, [page, pageSize, actor, action, entityType, toast])
+  }, [page, pageSize, actor, action, entityType])
 
   function goToPage(next: number) {
     setPending(true)

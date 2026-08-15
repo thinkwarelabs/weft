@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/legacy/Field'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { useToast } from '@/components/legacy/Toast'
+import { Modal } from '@/components/ui/modal'
+import { toast } from 'sonner'
 import { Client } from '@/lib/types'
 
 type FormState = Record<string, string>
@@ -44,7 +44,6 @@ export function ClientFormModal({ open, onClose, initial, onSaved }: {
   const [form, setForm] = useState<FormState>(() => (initial ? toForm(initial) : empty()))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -66,11 +65,11 @@ export function ClientFormModal({ open, onClose, initial, onSaved }: {
       const d = await res.json()
       onSaved(d.client)
       onClose()
-      toast(initial ? 'Client updated' : 'Client added')
+      toast.success(initial ? 'Client updated' : 'Client added')
     } else {
       const d = await res.json().catch(() => ({}))
       if (d.issues) setErrors(Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]])))
-      toast(d.error ?? 'Failed to save', 'error')
+      toast.error(d.error ?? 'Failed to save')
     }
   }
 

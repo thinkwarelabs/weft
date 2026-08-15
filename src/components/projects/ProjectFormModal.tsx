@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/legacy/Field'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { useToast } from '@/components/legacy/Toast'
+import { Modal } from '@/components/ui/modal'
+import { toast } from 'sonner'
 import type { Project } from '@/lib/types'
 
 // Create only. A project's client can never change — moving one would silently
@@ -22,7 +22,6 @@ export function ProjectFormModal({
   const [name, setName] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   async function save() {
     setSaving(true)
@@ -36,7 +35,7 @@ export function ProjectFormModal({
     if (res.ok) {
       const d = await res.json()
       onSaved(d.project)
-      toast('Project created')
+      toast.success('Project created')
       return
     }
     const d = await res.json().catch(() => ({}))
@@ -45,7 +44,7 @@ export function ProjectFormModal({
         Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]]))
       )
     }
-    toast(d.error ?? 'Failed to create project', 'error')
+    toast.error(d.error ?? 'Failed to create project')
   }
 
   return (

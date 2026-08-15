@@ -3,13 +3,13 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { EmptyState } from '@/components/legacy/EmptyState'
-import { Field } from '@/components/legacy/Field'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { Spinner } from '@/components/legacy/Spinner'
+import { Modal } from '@/components/ui/modal'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 
 interface IdeaRow {
   id: string
@@ -27,7 +27,6 @@ export function IdeasBoard() {
   const [q, setQ] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [composing, setComposing] = useState(false)
-  const { toast } = useToast()
 
   useEffect(() => {
     const t = setTimeout(() => setQ(search.trim()), 250)
@@ -42,10 +41,10 @@ export function IdeasBoard() {
       .then((d) => setIdeas(d.ideas ?? []))
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load ideas', 'error')
+        toast.error('Failed to load ideas')
       })
     return () => ac.abort()
-  }, [q, reloadKey, toast])
+  }, [q, reloadKey])
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,7 +122,6 @@ function NewIdeaModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [body, setBody] = useState('')
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const { toast } = useToast()
 
   async function save() {
     setSaving(true)
@@ -136,7 +134,7 @@ function NewIdeaModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
     setSaving(false)
     if (res.ok) {
       onCreated()
-      toast('Idea posted')
+      toast.success('Idea posted')
       return
     }
     const d = await res.json().catch(() => ({}))
@@ -145,7 +143,7 @@ function NewIdeaModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]]))
       )
     }
-    toast(d.error ?? 'Failed to post', 'error')
+    toast.error(d.error ?? 'Failed to post')
   }
 
   return (

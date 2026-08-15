@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
-import { ToastProvider } from '@/components/legacy/Toast'
+import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
 import './globals.css'
 
@@ -22,7 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={cn('font-sans', geist.variable)}>
       <body className="font-sans antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        {children}
+        {/* Sonner replaces the hand-rolled ToastProvider. Toasts are now fired
+            with `toast()` imported directly, so there is no context to thread
+            through and no provider to forget. */}
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   )

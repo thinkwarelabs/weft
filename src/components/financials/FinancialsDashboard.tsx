@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
-import { EmptyState } from '@/components/legacy/EmptyState'
-import { Pagination } from '@/components/legacy/Pagination'
-import { Spinner } from '@/components/legacy/Spinner'
-import { useToast } from '@/components/legacy/Toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/pagination'
+import { Spinner } from '@/components/ui/spinner'
+import { toast } from 'sonner'
 import { pageCount } from '@/lib/pagination'
 import { cn } from '@/lib/cn'
 import { formatDateLong, todayISO } from '@/lib/dates'
@@ -122,7 +122,6 @@ export function FinancialsDashboard() {
   const [invSize, setInvSize] = useState(25)
   const [expPage, setExpPage] = useState(1)
   const [expSize, setExpSize] = useState(25)
-  const { toast } = useToast()
 
   useEffect(() => {
     fetch('/api/settings')
@@ -169,7 +168,7 @@ export function FinancialsDashboard() {
       .then(async (r) => {
         const d = await r.json()
         if (!r.ok) {
-          toast(d.error ?? 'Failed to load financials', 'error')
+          toast.error(d.error ?? 'Failed to load financials')
           return
         }
         // Stored WITH the range it belongs to, so "is this data current?" is
@@ -178,11 +177,11 @@ export function FinancialsDashboard() {
       })
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load financials', 'error')
+        toast.error('Failed to load financials')
       })
 
     return () => ac.abort()
-  }, [ready, from, to, reloadKey, toast])
+  }, [ready, from, to, reloadKey])
 
   const revenueRows: RevenueRow[] = useMemo(
     () =>
@@ -270,9 +269,9 @@ export function FinancialsDashboard() {
             }
           : prev
       )
-      toast('Expense deleted')
+      toast.success('Expense deleted')
     } else {
-      toast('Failed to delete expense', 'error')
+      toast.error('Failed to delete expense')
     }
   }
 

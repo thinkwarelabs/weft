@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Spinner } from '@/components/legacy/Spinner'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import { DELETE_WINDOW_MS, buildThread } from '@/lib/ideas'
 
 interface CommentRow {
@@ -31,7 +31,6 @@ export function IdeaDetail({ idea, actorId }: { idea: Idea; actorId: string }) {
   const [reloadKey, setReloadKey] = useState(0)
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
@@ -41,10 +40,10 @@ export function IdeaDetail({ idea, actorId }: { idea: Idea; actorId: string }) {
       .then((d) => setComments(d.comments ?? []))
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load comments', 'error')
+        toast.error('Failed to load comments')
       })
     return () => ac.abort()
-  }, [idea.id, reloadKey, toast])
+  }, [idea.id, reloadKey])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000)
@@ -57,12 +56,12 @@ export function IdeaDetail({ idea, actorId }: { idea: Idea; actorId: string }) {
   async function removeIdea() {
     const res = await fetch(`/api/ideas/${idea.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast('Idea deleted')
+      toast.success('Idea deleted')
       router.push('/ideas')
       return
     }
     const d = await res.json().catch(() => ({}))
-    toast(d.error ?? 'Could not delete', 'error')
+    toast.error(d.error ?? 'Could not delete')
   }
 
   const threads = comments ? buildThread(comments.map((c) => ({ ...c, parentId: c.parent_id }))) : []
@@ -209,7 +208,6 @@ function CommentComposer({
 }) {
   const [body, setBody] = useState('')
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   async function post() {
     const text = body.trim()
@@ -227,7 +225,7 @@ function CommentComposer({
       return
     }
     const d = await res.json().catch(() => ({}))
-    toast(d.error ?? 'Failed to post', 'error')
+    toast.error(d.error ?? 'Failed to post')
   }
 
   return (

@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field } from '@/components/legacy/Field'
-import { Modal } from '@/components/legacy/Modal'
-import { Select } from '@/components/legacy/Select'
+import { Field } from '@/components/ui/field'
+import { Modal } from '@/components/ui/modal'
+import { Select } from '@/components/ui/select-field'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import type { ClientContact } from '@/lib/types'
 
 interface RequestRow {
@@ -32,7 +32,6 @@ export function RequestFeedback({
   const [contacts, setContacts] = useState<ClientContact[]>([])
   const [reloadKey, setReloadKey] = useState(0)
   const [open, setOpen] = useState(false)
-  const { toast } = useToast()
 
   const waiting = (requests ?? []).filter((r) => r.responded_at === null).length
 
@@ -50,10 +49,10 @@ export function RequestFeedback({
       })
       .catch((e: unknown) => {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        toast('Failed to load feedback requests', 'error')
+        toast.error('Failed to load feedback requests')
       })
     return () => ac.abort()
-  }, [projectId, clientId, reloadKey, toast])
+  }, [projectId, clientId, reloadKey])
 
   return (
     <Card>
@@ -118,7 +117,6 @@ function RequestModal({
   const [contactId, setContactId] = useState(contacts[0]?.id ?? '')
   const [prompt, setPrompt] = useState('')
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   async function send() {
     setSaving(true)
@@ -130,12 +128,12 @@ function RequestModal({
     setSaving(false)
     if (res.ok) {
       onSent()
-      toast('Feedback link sent')
+      toast.success('Feedback link sent')
       return
     }
     const d = await res.json().catch(() => ({}))
     // A send failure revokes the token server-side, so nothing is left live.
-    toast(d.error ?? 'Could not send the link', 'error')
+    toast.error(d.error ?? 'Could not send the link')
   }
 
   const selected = contacts.find((c) => c.id === contactId)

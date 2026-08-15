@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/legacy/Field'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Modal } from '@/components/legacy/Modal'
-import { useToast } from '@/components/legacy/Toast'
+import { Modal } from '@/components/ui/modal'
+import { toast } from 'sonner'
 import type { ClientContact } from '@/lib/types'
 
 export function ContactFormModal({
@@ -25,7 +25,6 @@ export function ContactFormModal({
   const [title, setTitle] = useState(initial?.title ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   async function save() {
     setSaving(true)
@@ -44,7 +43,7 @@ export function ContactFormModal({
     if (res.ok) {
       const d = await res.json()
       onSaved(d.contact)
-      toast(editing ? 'Contact updated' : 'Contact added')
+      toast.success(editing ? 'Contact updated' : 'Contact added')
       return
     }
     const d = await res.json().catch(() => ({}))
@@ -53,7 +52,7 @@ export function ContactFormModal({
         Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]]))
       )
     }
-    toast(d.error ?? 'Failed to save contact', 'error')
+    toast.error(d.error ?? 'Failed to save contact')
   }
 
   return (

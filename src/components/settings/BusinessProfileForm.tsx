@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field } from '@/components/legacy/Field'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/legacy/Select'
-import { Spinner } from '@/components/legacy/Spinner'
+import { Select } from '@/components/ui/select-field'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/legacy/Toast'
+import { toast } from 'sonner'
 import { BusinessProfile } from '@/lib/types'
 
 type FormState = Record<string, string>
@@ -23,14 +23,13 @@ export function BusinessProfileForm() {
   const [form, setForm] = useState<FormState | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
 
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((d) => setForm(toForm(d.profile)))
-      .catch(() => toast('Failed to load profile', 'error'))
-  }, [toast])
+      .catch(() => toast.error('Failed to load profile'))
+  }, [])
 
   if (!form) return <div className="flex min-h-[60vh] items-center justify-center"><Spinner className="size-10 text-zinc-400" /></div>
 
@@ -50,11 +49,11 @@ export function BusinessProfileForm() {
       body: JSON.stringify(payload),
     })
     setSaving(false)
-    if (res.ok) { toast('Profile saved') }
+    if (res.ok) { toast.success('Profile saved') }
     else {
       const d = await res.json().catch(() => ({}))
       if (d.issues) setErrors(Object.fromEntries(Object.entries(d.issues).map(([k, v]) => [k, (v as string[])[0]])))
-      toast(d.error ?? 'Failed to save', 'error')
+      toast.error(d.error ?? 'Failed to save')
     }
   }
 
