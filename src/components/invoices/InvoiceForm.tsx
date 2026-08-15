@@ -2,13 +2,13 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DatePicker } from '@/components/legacy/DatePicker'
 import { Field } from '@/components/legacy/Field'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/components/legacy/Select'
 import { Spinner } from '@/components/legacy/Spinner'
-import { Textarea } from '@/components/legacy/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/legacy/Toast'
 import { ClientPicker } from '@/components/invoices/ClientPicker'
 import { gstBreakdown, isIntraState } from '@/lib/gst'
@@ -262,155 +262,172 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
   return (
     <div className="flex gap-8">
       <div className="flex flex-1 flex-col gap-6">
-        <Card title="Details">
-          <div className="flex flex-col gap-4">
-            <Field label="Client">
-              <ClientPicker
-                selected={selectedClient}
-                onSelect={(c) => {
-                  setSelectedClient(c)
-                  setForm((f) => ({ ...f, client_id: c.id }))
-                }}
-                error={errors.client_id}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Issue date" error={errors.issue_date}>
-                <DatePicker value={form.issue_date} onChange={(d) => setForm((f) => ({ ...f, issue_date: d }))} />
-              </Field>
-              <Field label="Due date" error={errors.due_date}>
-                <DatePicker value={form.due_date} onChange={(d) => setForm((f) => ({ ...f, due_date: d }))} />
-              </Field>
-              <Field label="Currency" error={errors.currency}>
-                <Select
-                  value={form.currency}
-                  onChange={(v) => setForm((f) => ({ ...f, currency: v }))}
-                  options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+        <Card>
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <Field label="Client">
+                <ClientPicker
+                  selected={selectedClient}
+                  onSelect={(c) => {
+                    setSelectedClient(c)
+                    setForm((f) => ({ ...f, client_id: c.id }))
+                  }}
+                  error={errors.client_id}
                 />
               </Field>
-              <Field label="Tax rate %" error={errors.tax_rate}>
-                <Input type="number" step="0.01" min="0" max="100" value={form.tax_rate} onChange={set('tax_rate')} />
-              </Field>
-              <Field label="Tax label" error={errors.tax_label} className="col-span-2">
-                <Input value={form.tax_label} onChange={set('tax_label')} placeholder="e.g. IGST - INDIA" />
-              </Field>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Line items">
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-12 gap-2 text-[13px] font-medium text-zinc-500">
-              <span className="col-span-4">Description</span>
-              <span className="col-span-3">Period</span>
-              <span className="col-span-1">Qty</span>
-              <span className="col-span-2">Unit price</span>
-              <span className="col-span-1 text-center" title="Unit price includes GST">GST incl.</span>
-              <span className="col-span-1" />
-            </div>
-            {form.items.map((row) => (
-              <div key={row.key} className="grid grid-cols-12 gap-2">
-                <Input
-                  className="col-span-4"
-                  placeholder="Description"
-                  value={row.description}
-                  onChange={(e) => updateItem(row.key, { description: e.target.value })}
-                />
-                <Input
-                  className="col-span-3"
-                  placeholder="e.g. Jul 10–Aug 9, 2026"
-                  value={row.period}
-                  onChange={(e) => updateItem(row.key, { period: e.target.value })}
-                />
-                <Input
-                  className="col-span-1"
-                  type="number"
-                  value={row.qty}
-                  onChange={(e) => updateItem(row.key, { qty: e.target.value })}
-                />
-                <Input
-                  className="col-span-2"
-                  type="number"
-                  value={row.unit_price}
-                  onChange={(e) => updateItem(row.key, { unit_price: e.target.value })}
-                />
-                <label className="col-span-1 flex cursor-pointer items-center justify-center" title="Unit price includes GST">
-                  <input
-                    type="checkbox"
-                    className="size-4 cursor-pointer accent-zinc-900"
-                    checked={row.gst_included}
-                    onChange={(e) => updateItem(row.key, { gst_included: e.target.checked })}
-                    aria-label="Unit price includes GST"
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Issue date" error={errors.issue_date}>
+                  <DatePicker value={form.issue_date} onChange={(d) => setForm((f) => ({ ...f, issue_date: d }))} />
+                </Field>
+                <Field label="Due date" error={errors.due_date}>
+                  <DatePicker value={form.due_date} onChange={(d) => setForm((f) => ({ ...f, due_date: d }))} />
+                </Field>
+                <Field label="Currency" error={errors.currency}>
+                  <Select
+                    value={form.currency}
+                    onChange={(v) => setForm((f) => ({ ...f, currency: v }))}
+                    options={CURRENCIES.map((c) => ({ value: c, label: c }))}
                   />
-                </label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="col-span-1 justify-self-center px-2"
-                  onClick={() => removeItem(row.key)}
-                  disabled={form.items.length === 1}
-                >
-                  ×
-                </Button>
+                </Field>
+                <Field label="Tax rate %" error={errors.tax_rate}>
+                  <Input type="number" step="0.01" min="0" max="100" value={form.tax_rate} onChange={set('tax_rate')} />
+                </Field>
+                <Field label="Tax label" error={errors.tax_label} className="col-span-2">
+                  <Input value={form.tax_label} onChange={set('tax_label')} placeholder="e.g. IGST - INDIA" />
+                </Field>
               </div>
-            ))}
-            {errors.items && <span className="block text-xs text-red-600">{errors.items}</span>}
-            <Button type="button" variant="ghost" className="self-start" onClick={addItem}>
-              + Add item
-            </Button>
-          </div>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card title="Extras">
-          <div className="flex flex-col gap-4">
-            <Field label="Payment link (optional)" error={errors.payment_link}>
-              <Input
-                type="url"
-                value={form.payment_link}
-                onChange={set('payment_link')}
-                placeholder="https://…"
-              />
-            </Field>
-            <Field label="Notes (optional)" error={errors.notes}>
-              <Textarea value={form.notes} onChange={set('notes')} placeholder="Anything the client should see on the invoice" />
-            </Field>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Line items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-12 gap-2 text-[13px] font-medium text-zinc-500">
+                <span className="col-span-4">Description</span>
+                <span className="col-span-3">Period</span>
+                <span className="col-span-1">Qty</span>
+                <span className="col-span-2">Unit price</span>
+                <span className="col-span-1 text-center" title="Unit price includes GST">GST incl.</span>
+                <span className="col-span-1" />
+              </div>
+              {form.items.map((row) => (
+                <div key={row.key} className="grid grid-cols-12 gap-2">
+                  <Input
+                    className="col-span-4"
+                    placeholder="Description"
+                    value={row.description}
+                    onChange={(e) => updateItem(row.key, { description: e.target.value })}
+                  />
+                  <Input
+                    className="col-span-3"
+                    placeholder="e.g. Jul 10–Aug 9, 2026"
+                    value={row.period}
+                    onChange={(e) => updateItem(row.key, { period: e.target.value })}
+                  />
+                  <Input
+                    className="col-span-1"
+                    type="number"
+                    value={row.qty}
+                    onChange={(e) => updateItem(row.key, { qty: e.target.value })}
+                  />
+                  <Input
+                    className="col-span-2"
+                    type="number"
+                    value={row.unit_price}
+                    onChange={(e) => updateItem(row.key, { unit_price: e.target.value })}
+                  />
+                  <label className="col-span-1 flex cursor-pointer items-center justify-center" title="Unit price includes GST">
+                    <input
+                      type="checkbox"
+                      className="size-4 cursor-pointer accent-zinc-900"
+                      checked={row.gst_included}
+                      onChange={(e) => updateItem(row.key, { gst_included: e.target.checked })}
+                      aria-label="Unit price includes GST"
+                    />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="col-span-1 justify-self-center px-2"
+                    onClick={() => removeItem(row.key)}
+                    disabled={form.items.length === 1}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+              {errors.items && <span className="block text-xs text-red-600">{errors.items}</span>}
+              <Button type="button" variant="ghost" className="self-start" onClick={addItem}>
+                + Add item
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Extras</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <Field label="Payment link (optional)" error={errors.payment_link}>
+                <Input
+                  type="url"
+                  value={form.payment_link}
+                  onChange={set('payment_link')}
+                  placeholder="https://…"
+                />
+              </Field>
+              <Field label="Notes (optional)" error={errors.notes}>
+                <Textarea value={form.notes} onChange={set('notes')} placeholder="Anything the client should see on the invoice" />
+              </Field>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
       <div className="w-72 shrink-0">
         <Card className="sticky top-10 flex flex-col gap-4">
-          <div className="flex flex-col gap-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Subtotal</span>
-              <span>{formatMoney(totals.subtotal, form.currency)}</span>
-            </div>
-            {gstRows.length > 0 ? (
-              gstRows.map((r) => (
-                <div key={r.label} className="flex justify-between">
-                  <span className="text-zinc-500">{r.label} ({r.rate}%)</span>
-                  <span>{formatMoney(r.amount, form.currency)}</span>
-                </div>
-              ))
-            ) : (
+          <CardContent>
+            <div className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-zinc-500">{form.tax_label || 'Tax'} ({taxRate}%)</span>
-                <span>{formatMoney(totals.taxAmount, form.currency)}</span>
+                <span className="text-zinc-500">Subtotal</span>
+                <span>{formatMoney(totals.subtotal, form.currency)}</span>
               </div>
-            )}
-            <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
-              <span>Total</span>
-              <span>{formatMoney(totals.total, form.currency)}</span>
+              {gstRows.length > 0 ? (
+                gstRows.map((r) => (
+                  <div key={r.label} className="flex justify-between">
+                    <span className="text-zinc-500">{r.label} ({r.rate}%)</span>
+                    <span>{formatMoney(r.amount, form.currency)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">{form.tax_label || 'Tax'} ({taxRate}%)</span>
+                  <span>{formatMoney(totals.taxAmount, form.currency)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-zinc-200 pt-2 text-base font-semibold">
+                <span>Total</span>
+                <span>{formatMoney(totals.total, form.currency)}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Button className="w-full" loading={saving === 'finalize'} onClick={handleFinalize}>
-              Finalize &amp; download PDF
-            </Button>
-            <Button className="w-full" variant="outline" loading={saving === 'draft'} onClick={handleSaveDraft}>
-              Save draft
-            </Button>
-          </div>
+            <div className="flex flex-col gap-2">
+              <Button className="w-full" loading={saving === 'finalize'} onClick={handleFinalize}>
+                Finalize &amp; download PDF
+              </Button>
+              <Button className="w-full" variant="outline" loading={saving === 'draft'} onClick={handleSaveDraft}>
+                Save draft
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

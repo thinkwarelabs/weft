@@ -2,10 +2,10 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
 import { EmptyState } from '@/components/legacy/EmptyState'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/legacy/Pagination'
 import { Spinner } from '@/components/legacy/Spinner'
 import { useToast } from '@/components/legacy/Toast'
@@ -135,39 +135,41 @@ export function ClientsManager() {
       ) : (
         <>
           <Card className="p-0 overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
-                  <th className="w-full px-4 py-3">Name</th>
-                  <th className="whitespace-nowrap px-4 py-3">Email</th>
-                  <th className="whitespace-nowrap px-4 py-3">Location</th>
-                  <th className="whitespace-nowrap px-4 py-3">Tax ID</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((c) => (
-                  <tr key={c.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-sm border-b border-zinc-100">
-                      <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
-                        {c.name}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">{c.email || '—'}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
-                      {[c.city, c.country].filter(Boolean).join(', ') || '—'}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">{c.tax_id || '—'}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" className="h-7 px-2" onClick={() => openEdit(c)}>Edit</Button>
-                        <Button variant="ghost" className="h-7 px-2" onClick={() => setArchiving(c)}>Archive</Button>
-                      </div>
-                    </td>
+            <CardContent>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
+                    <th className="w-full px-4 py-3">Name</th>
+                    <th className="whitespace-nowrap px-4 py-3">Email</th>
+                    <th className="whitespace-nowrap px-4 py-3">Location</th>
+                    <th className="whitespace-nowrap px-4 py-3">Tax ID</th>
+                    <th className="px-4 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((c) => (
+                    <tr key={c.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-3 text-sm border-b border-zinc-100">
+                        <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
+                          {c.name}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">{c.email || '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
+                        {[c.city, c.country].filter(Boolean).join(', ') || '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">{c.tax_id || '—'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" className="h-7 px-2" onClick={() => openEdit(c)}>Edit</Button>
+                          <Button variant="ghost" className="h-7 px-2" onClick={() => setArchiving(c)}>Archive</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
           </Card>
 
           <Pagination

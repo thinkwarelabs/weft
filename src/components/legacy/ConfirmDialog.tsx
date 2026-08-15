@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Modal } from './Modal'
-import { Button } from './Button'
+import { Button } from '@/components/ui/button'
 
 export function ConfirmDialog({ open, onClose, onConfirm, title, message, confirmLabel = 'Confirm', danger = false }: {
   open: boolean
@@ -20,9 +20,9 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, confir
       title={title}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
           <Button
-            variant={danger ? 'danger' : 'primary'}
+            variant={danger ? 'destructive' : 'default'}
             loading={busy}
             onClick={async () => {
               setBusy(true)

@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/legacy/EmptyState'
 import { Spinner } from '@/components/legacy/Spinner'
 import { useToast } from '@/components/legacy/Toast'
@@ -88,37 +88,39 @@ export function ClientDetail({ client }: { client: Client }) {
           />
         ) : (
           <Card className="overflow-hidden p-0">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  <th className="w-full px-4 py-3">Project</th>
-                  <th className="whitespace-nowrap px-4 py-3">Status</th>
-                  <th className="whitespace-nowrap px-4 py-3">Onboarding</th>
-                  <th className="whitespace-nowrap px-4 py-3">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <tr key={p.id} className="hover:bg-zinc-50">
-                    <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                      <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
-                        {p.name}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm">
-                      <ProjectStatusBadge status={p.status} />
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
-                      {p.onboarding_progress.done}/{p.onboarding_progress.total}
-                      {p.onboarding_progress.complete && ' ✓'}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
-                      {formatDateLong(p.created_at.slice(0, 10))}
-                    </td>
+            <CardContent>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="w-full px-4 py-3">Project</th>
+                    <th className="whitespace-nowrap px-4 py-3">Status</th>
+                    <th className="whitespace-nowrap px-4 py-3">Onboarding</th>
+                    <th className="whitespace-nowrap px-4 py-3">Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {projects.map((p) => (
+                    <tr key={p.id} className="hover:bg-zinc-50">
+                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                        <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
+                          {p.name}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm">
+                        <ProjectStatusBadge status={p.status} />
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
+                        {p.onboarding_progress.done}/{p.onboarding_progress.total}
+                        {p.onboarding_progress.complete && ' ✓'}
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
+                        {formatDateLong(p.created_at.slice(0, 10))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
           </Card>
         )}
       </section>
@@ -144,52 +146,54 @@ export function ClientDetail({ client }: { client: Client }) {
           />
         ) : (
           <Card className="overflow-hidden p-0">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  <th className="w-full px-4 py-3">Name</th>
-                  <th className="whitespace-nowrap px-4 py-3">Email</th>
-                  <th className="whitespace-nowrap px-4 py-3">Role</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {contacts.map((c) => (
-                  <tr key={c.id} className={c.active ? 'hover:bg-zinc-50' : 'bg-zinc-50/60'}>
-                    <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                      <span className={c.active ? '' : 'text-zinc-400 line-through'}>{c.name}</span>
-                      {!c.active && (
-                        <span className="ml-2 text-xs text-zinc-400">no access</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
-                      {c.email}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
-                      {c.title || '—'}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={() => setContactModal({ editing: c })}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-7 px-2"
-                          onClick={() => setContactActive(c, !c.active)}
-                        >
-                          {c.active ? 'Deactivate' : 'Reactivate'}
-                        </Button>
-                      </div>
-                    </td>
+            <CardContent>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="w-full px-4 py-3">Name</th>
+                    <th className="whitespace-nowrap px-4 py-3">Email</th>
+                    <th className="whitespace-nowrap px-4 py-3">Role</th>
+                    <th className="px-4 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {contacts.map((c) => (
+                    <tr key={c.id} className={c.active ? 'hover:bg-zinc-50' : 'bg-zinc-50/60'}>
+                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                        <span className={c.active ? '' : 'text-zinc-400 line-through'}>{c.name}</span>
+                        {!c.active && (
+                          <span className="ml-2 text-xs text-zinc-400">no access</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
+                        {c.email}
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
+                        {c.title || '—'}
+                      </td>
+                      <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => setContactModal({ editing: c })}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="h-7 px-2"
+                            onClick={() => setContactActive(c, !c.active)}
+                          >
+                            {c.active ? 'Deactivate' : 'Reactivate'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
           </Card>
         )}
       </section>

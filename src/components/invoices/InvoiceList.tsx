@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/legacy/Badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
 import { EmptyState } from '@/components/legacy/EmptyState'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/legacy/Pagination'
 import { Spinner } from '@/components/legacy/Spinner'
 import { useToast } from '@/components/legacy/Toast'
@@ -161,34 +161,42 @@ export function InvoiceList() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-4 gap-4">
         <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Total invoices</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{stats.issuedCount}</p>
-          {(stats.draftCount > 0 || stats.cancelledCount > 0) && (
-            <p className="mt-1 text-xs text-zinc-500">
-              {[
-                stats.draftCount > 0 && `${stats.draftCount} draft${stats.draftCount > 1 ? 's' : ''}`,
-                stats.cancelledCount > 0 && `${stats.cancelledCount} cancelled`,
-              ].filter(Boolean).join(' · ')}
-            </p>
-          )}
+          <CardContent>
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Total invoices</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{stats.issuedCount}</p>
+            {(stats.draftCount > 0 || stats.cancelledCount > 0) && (
+              <p className="mt-1 text-xs text-zinc-500">
+                {[
+                  stats.draftCount > 0 && `${stats.draftCount} draft${stats.draftCount > 1 ? 's' : ''}`,
+                  stats.cancelledCount > 0 && `${stats.cancelledCount} cancelled`,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </CardContent>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Invoiced</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.invoiced)}</p>
+          <CardContent>
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Invoiced</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.invoiced)}</p>
+          </CardContent>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Received</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.received)}</p>
-          {Object.keys(stats.tds).length > 0 && (
-            <p className="mt-1 text-xs text-zinc-500">+ {formatCurrencyMap(stats.tds)} TDS</p>
-          )}
+          <CardContent>
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Received</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.received)}</p>
+            {Object.keys(stats.tds).length > 0 && (
+              <p className="mt-1 text-xs text-zinc-500">+ {formatCurrencyMap(stats.tds)} TDS</p>
+            )}
+          </CardContent>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Outstanding</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.outstanding)}</p>
-          {stats.overdueCount > 0 && (
-            <p className="mt-1 text-xs text-red-600">{formatCurrencyMap(stats.overdue)} overdue</p>
-          )}
+          <CardContent>
+            <p className="text-xs uppercase tracking-wide text-zinc-500">Outstanding</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{formatCurrencyMap(stats.outstanding)}</p>
+            {stats.overdueCount > 0 && (
+              <p className="mt-1 text-xs text-red-600">{formatCurrencyMap(stats.overdue)} overdue</p>
+            )}
+          </CardContent>
         </Card>
       </div>
 
@@ -224,101 +232,103 @@ export function InvoiceList() {
       ) : (
         <>
           <Card className="p-0 overflow-hidden">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
-                  <th className="whitespace-nowrap px-4 py-3">Number</th>
-                  <th className="w-full px-4 py-3">Client</th>
-                  <th className="whitespace-nowrap px-4 py-3">Issue date</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right">Total</th>
-                  <th className="whitespace-nowrap px-4 py-3">Status</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-10 text-center text-sm text-zinc-500 border-b border-zinc-100" colSpan={6}>
-                      No matches
-                    </td>
+            <CardContent>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
+                    <th className="whitespace-nowrap px-4 py-3">Number</th>
+                    <th className="w-full px-4 py-3">Client</th>
+                    <th className="whitespace-nowrap px-4 py-3">Issue date</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right">Total</th>
+                    <th className="whitespace-nowrap px-4 py-3">Status</th>
+                    <th className="px-4 py-3" />
                   </tr>
-                ) : (
-                  rows.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="cursor-pointer hover:bg-zinc-50"
-                      onClick={() => router.push(`/invoices/${r.id}`)}
-                    >
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium border-b border-zinc-100">
-                        {r.invoice_number ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm border-b border-zinc-100">{r.clients?.name ?? '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">{formatDateLong(r.issue_date)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-right tabular-nums border-b border-zinc-100">
-                        {formatMoney(Number(r.total), r.currency)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
-                        {isOverdue(r.status, r.due_date) ? (
-                          <Badge status="overdue" label={`Overdue · ${daysOverdue(r.due_date)}d`} />
-                        ) : (
-                          <Badge status={r.status} />
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(`/invoices/${r.id}`)
-                            }}
-                          >
-                            PDF
-                          </Button>
-                          {r.status === 'draft' && (
-                            <Button
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/invoices/${r.id}/edit`)
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          )}
-                          {r.status === 'finalized' && (
-                            <Button
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setPayingRow(r)
-                              }}
-                            >
-                              Record payment
-                            </Button>
-                          )}
-                          {r.status === 'draft' && (
-                            <Button
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setConfirmDelete(r)
-                              }}
-                            >
-                              Delete
-                            </Button>
-                          )}
-                        </div>
+                </thead>
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-10 text-center text-sm text-zinc-500 border-b border-zinc-100" colSpan={6}>
+                        No matches
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    rows.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="cursor-pointer hover:bg-zinc-50"
+                        onClick={() => router.push(`/invoices/${r.id}`)}
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium border-b border-zinc-100">
+                          {r.invoice_number ?? '—'}
+                        </td>
+                        <td className="px-4 py-3 text-sm border-b border-zinc-100">{r.clients?.name ?? '—'}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">{formatDateLong(r.issue_date)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-right tabular-nums border-b border-zinc-100">
+                          {formatMoney(Number(r.total), r.currency)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
+                          {isOverdue(r.status, r.due_date) ? (
+                            <Badge status="overdue" label={`Overdue · ${daysOverdue(r.due_date)}d`} />
+                          ) : (
+                            <Badge status={r.status} />
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm border-b border-zinc-100">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/invoices/${r.id}`)
+                              }}
+                            >
+                              PDF
+                            </Button>
+                            {r.status === 'draft' && (
+                              <Button
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push(`/invoices/${r.id}/edit`)
+                                }}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {r.status === 'finalized' && (
+                              <Button
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setPayingRow(r)
+                                }}
+                              >
+                                Record payment
+                              </Button>
+                            )}
+                            {r.status === 'draft' && (
+                              <Button
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setConfirmDelete(r)
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </CardContent>
           </Card>
 
           <Pagination

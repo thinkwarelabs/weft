@@ -1,5 +1,5 @@
 'use client'
-import { Button } from './Button'
+import { Button } from '@/components/ui/button'
 import { Select } from './Select'
 
 export const PAGE_SIZES = [10, 25, 50, 100]

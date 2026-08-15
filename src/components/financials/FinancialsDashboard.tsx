@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
 import { EmptyState } from '@/components/legacy/EmptyState'
 import { Pagination } from '@/components/legacy/Pagination'
@@ -306,49 +306,56 @@ export function FinancialsDashboard() {
               </Card>
             ))}
             <Card>
-              <p className="text-xs uppercase tracking-wide text-zinc-500">TDS deducted</p>
-              <div className="mt-2 text-2xl font-semibold tracking-tight">
-                <CurrencyAmountLines amounts={tdsBuckets} />
-              </div>
+              <CardContent>
+                <p className="text-xs uppercase tracking-wide text-zinc-500">TDS deducted</p>
+                <div className="mt-2 text-2xl font-semibold tracking-tight">
+                  <CurrencyAmountLines amounts={tdsBuckets} />
+                </div>
+              </CardContent>
             </Card>
           </div>
 
           {showMonthly && (
-            <Card title="Monthly breakdown" className="p-0 overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <th className="px-4 py-3">Month</th>
-                    <th className="px-4 py-3">Ex-GST</th>
-                    <th className="px-4 py-3">GST</th>
-                    <th className="px-4 py-3">Total</th>
-                    <th className="px-4 py-3">Expenses</th>
-                    <th className="px-4 py-3">Net</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {breakdown.map((row) => (
-                    <tr key={row.label}>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">{row.label}</td>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                        <CurrencyLines buckets={row.buckets} field="exGst" />
-                      </td>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                        <CurrencyLines buckets={row.buckets} field="gst" />
-                      </td>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                        <CurrencyLines buckets={row.buckets} field="total" />
-                      </td>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                        <CurrencyLines buckets={row.buckets} field="expenses" />
-                      </td>
-                      <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                        <CurrencyLines buckets={row.buckets} field="net" />
-                      </td>
+            <Card className="p-0 overflow-hidden">
+              <CardHeader>
+                <CardTitle>Monthly breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      <th className="px-4 py-3">Month</th>
+                      <th className="px-4 py-3">Ex-GST</th>
+                      <th className="px-4 py-3">GST</th>
+                      <th className="px-4 py-3">Total</th>
+                      <th className="px-4 py-3">Expenses</th>
+                      <th className="px-4 py-3">Net</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {breakdown.map((row) => (
+                      <tr key={row.label}>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">{row.label}</td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          <CurrencyLines buckets={row.buckets} field="exGst" />
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          <CurrencyLines buckets={row.buckets} field="gst" />
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          <CurrencyLines buckets={row.buckets} field="total" />
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          <CurrencyLines buckets={row.buckets} field="expenses" />
+                        </td>
+                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                          <CurrencyLines buckets={row.buckets} field="net" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
             </Card>
           )}
 
@@ -358,40 +365,42 @@ export function FinancialsDashboard() {
               <EmptyState title="No paid invoices in this period" hint="Invoices marked paid will show up here." />
             ) : (
               <Card className="p-0 overflow-hidden">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      <th className="px-4 py-3">Number</th>
-                      <th className="px-4 py-3">Client</th>
-                      <th className="px-4 py-3">Paid on</th>
-                      <th className="px-4 py-3">Total</th>
-                      <th className="px-4 py-3">Received</th>
-                      <th className="px-4 py-3">TDS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paidInvoicesPage.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-zinc-50">
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">
-                          <Link href={`/invoices/${inv.id}`} className="hover:underline">
-                            {inv.invoice_number ?? '—'}
-                          </Link>
-                        </td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">{inv.clients?.name ?? '—'}</td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">{formatDateLong(inv.paidDate)}</td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          {formatMoney(Number(inv.total), inv.currency)}
-                        </td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          {formatMoney(Number(inv.amount_received), inv.currency)}
-                        </td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          {formatMoney(Number(inv.tds_amount), inv.currency)}
-                        </td>
+                <CardContent>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                        <th className="px-4 py-3">Number</th>
+                        <th className="px-4 py-3">Client</th>
+                        <th className="px-4 py-3">Paid on</th>
+                        <th className="px-4 py-3">Total</th>
+                        <th className="px-4 py-3">Received</th>
+                        <th className="px-4 py-3">TDS</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paidInvoicesPage.map((inv) => (
+                        <tr key={inv.id} className="hover:bg-zinc-50">
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">
+                            <Link href={`/invoices/${inv.id}`} className="hover:underline">
+                              {inv.invoice_number ?? '—'}
+                            </Link>
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">{inv.clients?.name ?? '—'}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">{formatDateLong(inv.paidDate)}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            {formatMoney(Number(inv.total), inv.currency)}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            {formatMoney(Number(inv.amount_received), inv.currency)}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            {formatMoney(Number(inv.tds_amount), inv.currency)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
               </Card>
             )}
             {paidInvoices.length > 0 && (
@@ -423,43 +432,45 @@ export function FinancialsDashboard() {
               />
             ) : (
               <Card className="p-0 overflow-hidden">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Paid by</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expensesPage.map((e) => (
-                      <tr key={e.id} className="hover:bg-zinc-50">
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">{e.name}</td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">{e.expense_type ?? '—'}</td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          {e.payer_type === 'company' ? 'Company account' : e.payer_name ?? '—'}
-                        </td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">{formatDateLong(e.expense_date)}</td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          {formatMoney(Number(e.amount), e.currency)}
-                        </td>
-                        <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" className="h-7 px-2" onClick={() => openEdit(e)}>
-                              Edit
-                            </Button>
-                            <Button variant="ghost" className="h-7 px-2" onClick={() => setDeleting(e)}>
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
+                <CardContent>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Type</th>
+                        <th className="px-4 py-3">Paid by</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {expensesPage.map((e) => (
+                        <tr key={e.id} className="hover:bg-zinc-50">
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm font-medium">{e.name}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">{e.expense_type ?? '—'}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            {e.payer_type === 'company' ? 'Company account' : e.payer_name ?? '—'}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">{formatDateLong(e.expense_date)}</td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            {formatMoney(Number(e.amount), e.currency)}
+                          </td>
+                          <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" className="h-7 px-2" onClick={() => openEdit(e)}>
+                                Edit
+                              </Button>
+                              <Button variant="ghost" className="h-7 px-2" onClick={() => setDeleting(e)}>
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
               </Card>
             )}
             {expensesSorted.length > 0 && (

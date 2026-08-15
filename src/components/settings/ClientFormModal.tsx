@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/legacy/Field'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/legacy/Modal'
 import { useToast } from '@/components/legacy/Toast'
 import { Client } from '@/lib/types'

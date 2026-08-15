@@ -1,10 +1,10 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/legacy/EmptyState'
 import { Spinner } from '@/components/legacy/Spinner'
-import { Textarea } from '@/components/legacy/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/legacy/Toast'
 import { cn } from '@/lib/cn'
 import { DELETE_WINDOW_MS } from '@/lib/timeline'
@@ -116,120 +116,125 @@ export function Timeline({
   }
 
   return (
-    <Card title="Timeline">
-      <div className="flex flex-col gap-3 border-b border-zinc-100 pb-5">
-        <Textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={3}
-          placeholder={
-            kind === 'note'
-              ? 'What was said, decided, or promised — while it’s fresh.'
-              : 'A milestone the client should see.'
-          }
-        />
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
-            {(['note', 'milestone'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKind(k)}
-                className={cn(
-                  'cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors',
-                  kind === k ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
-                )}
-              >
-                {KIND[k].label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500">{KIND[kind].hint}</span>
-            <Button onClick={add} loading={saving} disabled={!body.trim()}>
-              Add
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {!items ? (
-        <div className="flex min-h-[20vh] items-center justify-center">
-          <Spinner className="size-8 text-zinc-400" />
-        </div>
-      ) : items.length === 0 ? (
-        <div className="pt-6">
-          <EmptyState
-            title="Nothing logged yet"
-            hint="Write down what happened on the last call. The habit is the point."
+    <Card>
+      <CardHeader>
+        <CardTitle>Timeline</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-3 border-b border-zinc-100 pb-5">
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={3}
+            placeholder={
+              kind === 'note'
+                ? 'What was said, decided, or promised — while it’s fresh.'
+                : 'A milestone the client should see.'
+            }
           />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex gap-1 rounded-lg bg-zinc-100 p-0.5">
+              {(['note', 'milestone'] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setKind(k)}
+                  className={cn(
+                    'cursor-pointer rounded-md px-3 py-1 text-sm font-medium transition-colors',
+                    kind === k ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-800'
+                  )}
+                >
+                  {KIND[k].label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-500">{KIND[kind].hint}</span>
+              <Button onClick={add} loading={saving} disabled={!body.trim()}>
+                Add
+              </Button>
+            </div>
+          </div>
         </div>
-      ) : (
-        <ul className="flex flex-col pt-2">
-          {items.map((item) => {
-            const style = KIND[item.kind]
-            const age = now - new Date(item.created_at).getTime()
-            const canRemove =
-              item.kind !== 'feedback_request' &&
-              item.author_type === 'internal' &&
-              item.author.name === actorName &&
-              age < DELETE_WINDOW_MS
 
-            return (
-              <li key={item.id} className="group relative flex gap-3 py-3">
-                <div className="flex flex-col items-center">
-                  <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', style.dot)} />
-                  <span className="mt-1 w-px flex-1 bg-zinc-100 group-last:hidden" />
-                </div>
+        {!items ? (
+          <div className="flex min-h-[20vh] items-center justify-center">
+            <Spinner className="size-8 text-zinc-400" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="pt-6">
+            <EmptyState
+              title="Nothing logged yet"
+              hint="Write down what happened on the last call. The habit is the point."
+            />
+          </div>
+        ) : (
+          <ul className="flex flex-col pt-2">
+            {items.map((item) => {
+              const style = KIND[item.kind]
+              const age = now - new Date(item.created_at).getTime()
+              const canRemove =
+                item.kind !== 'feedback_request' &&
+                item.author_type === 'internal' &&
+                item.author.name === actorName &&
+                age < DELETE_WINDOW_MS
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-zinc-500">
-                    <span className="font-medium text-zinc-700">{item.author.name}</span>
-                    <span>{style.label}</span>
-                    {item.sent_to && <span>to {item.sent_to}</span>}
-                    <span aria-hidden>·</span>
-                    <time dateTime={item.created_at}>{relativeTime(item.created_at, now)}</time>
-                    {item.kind === 'feedback_request' && !item.answered_at && (
-                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
-                        Waiting
-                      </span>
-                    )}
-                    {canRemove && (
-                      <button
-                        type="button"
-                        onClick={() => remove(item.id)}
-                        className="cursor-pointer text-zinc-400 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
-                      >
-                        Remove
-                      </button>
-                    )}
+              return (
+                <li key={item.id} className="group relative flex gap-3 py-3">
+                  <div className="flex flex-col items-center">
+                    <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', style.dot)} />
+                    <span className="mt-1 w-px flex-1 bg-zinc-100 group-last:hidden" />
                   </div>
 
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-800">{item.body}</p>
-
-                  {/* The reply, nested under the thing it answers. */}
-                  {item.replies.map((reply) => (
-                    <div
-                      key={reply.id}
-                      className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-emerald-800">
-                        <span className="font-medium">{reply.author.name}</span>
-                        <span>replied</span>
-                        <span aria-hidden>·</span>
-                        <time dateTime={reply.created_at}>
-                          {relativeTime(reply.created_at, now)}
-                        </time>
-                      </div>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-800">{reply.body}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-zinc-500">
+                      <span className="font-medium text-zinc-700">{item.author.name}</span>
+                      <span>{style.label}</span>
+                      {item.sent_to && <span>to {item.sent_to}</span>}
+                      <span aria-hidden>·</span>
+                      <time dateTime={item.created_at}>{relativeTime(item.created_at, now)}</time>
+                      {item.kind === 'feedback_request' && !item.answered_at && (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+                          Waiting
+                        </span>
+                      )}
+                      {canRemove && (
+                        <button
+                          type="button"
+                          onClick={() => remove(item.id)}
+                          className="cursor-pointer text-zinc-400 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-800">{item.body}</p>
+
+                    {/* The reply, nested under the thing it answers. */}
+                    {item.replies.map((reply) => (
+                      <div
+                        key={reply.id}
+                        className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2"
+                      >
+                        <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-emerald-800">
+                          <span className="font-medium">{reply.author.name}</span>
+                          <span>replied</span>
+                          <span aria-hidden>·</span>
+                          <time dateTime={reply.created_at}>
+                            {relativeTime(reply.created_at, now)}
+                          </time>
+                        </div>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-800">{reply.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </CardContent>
     </Card>
   )
 }

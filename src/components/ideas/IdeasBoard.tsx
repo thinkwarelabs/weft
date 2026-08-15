@@ -2,13 +2,13 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/legacy/EmptyState'
 import { Field } from '@/components/legacy/Field'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/legacy/Modal'
 import { Spinner } from '@/components/legacy/Spinner'
-import { Textarea } from '@/components/legacy/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/legacy/Toast'
 
 interface IdeaRow {
@@ -81,21 +81,23 @@ export function IdeasBoard() {
             <li key={idea.id}>
               <Link href={`/ideas/${idea.id}`} className="block">
                 <Card className="transition-colors hover:border-zinc-300">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <h3 className="font-medium tracking-tight">{idea.title}</h3>
-                    <span className="shrink-0 text-xs text-zinc-500">
-                      {idea.comment_count === 0
-                        ? 'No comments'
-                        : idea.comment_count === 1
-                          ? '1 comment'
-                          : `${idea.comment_count} comments`}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{idea.body}</p>
-                  <p className="mt-2 text-xs text-zinc-500">
-                    {idea.author.name} · {new Date(idea.created_at).toLocaleDateString()}
-                    {idea.project && ` · ${idea.project.name}`}
-                  </p>
+                  <CardContent>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <h3 className="font-medium tracking-tight">{idea.title}</h3>
+                      <span className="shrink-0 text-xs text-zinc-500">
+                        {idea.comment_count === 0
+                          ? 'No comments'
+                          : idea.comment_count === 1
+                            ? '1 comment'
+                            : `${idea.comment_count} comments`}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-zinc-600">{idea.body}</p>
+                    <p className="mt-2 text-xs text-zinc-500">
+                      {idea.author.name} · {new Date(idea.created_at).toLocaleDateString()}
+                      {idea.project && ` · ${idea.project.name}`}
+                    </p>
+                  </CardContent>
                 </Card>
               </Link>
             </li>

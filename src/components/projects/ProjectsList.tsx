@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/legacy/EmptyState'
 import { Spinner } from '@/components/legacy/Spinner'
 import { useToast } from '@/components/legacy/Toast'
@@ -87,40 +87,42 @@ export function ProjectsList() {
         />
       ) : (
         <Card className="overflow-hidden p-0">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
-                <th className="w-full px-4 py-3">Project</th>
-                <th className="whitespace-nowrap px-4 py-3">Status</th>
-                <th className="whitespace-nowrap px-4 py-3">Onboarding</th>
-                <th className="whitespace-nowrap px-4 py-3">Activity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((p) => (
-                <tr key={p.id} className="hover:bg-zinc-50">
-                  <td className="border-b border-zinc-100 px-4 py-3 text-sm">
-                    <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
-                      {p.name}
-                    </Link>
-                    <span className="ml-2 text-zinc-500">{p.client.name}</span>
-                  </td>
-                  <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3">
-                    <ProjectStatusBadge status={p.status} />
-                  </td>
-                  <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
-                    {p.onboarding_progress.complete
-                      ? '✓'
-                      : `${p.onboarding_progress.done}/${p.onboarding_progress.total}`}
-                  </td>
-                  <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
-                    {p.counts.entries === 0 ? '—' : `${p.counts.entries} entries`}
-                    {p.counts.invoices > 0 && ` · ${p.counts.invoices} invoices`}
-                  </td>
+          <CardContent>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="w-full px-4 py-3">Project</th>
+                  <th className="whitespace-nowrap px-4 py-3">Status</th>
+                  <th className="whitespace-nowrap px-4 py-3">Onboarding</th>
+                  <th className="whitespace-nowrap px-4 py-3">Activity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visible.map((p) => (
+                  <tr key={p.id} className="hover:bg-zinc-50">
+                    <td className="border-b border-zinc-100 px-4 py-3 text-sm">
+                      <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
+                        {p.name}
+                      </Link>
+                      <span className="ml-2 text-zinc-500">{p.client.name}</span>
+                    </td>
+                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3">
+                      <ProjectStatusBadge status={p.status} />
+                    </td>
+                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-600">
+                      {p.onboarding_progress.complete
+                        ? '✓'
+                        : `${p.onboarding_progress.done}/${p.onboarding_progress.total}`}
+                    </td>
+                    <td className="whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-sm text-zinc-500">
+                      {p.counts.entries === 0 ? '—' : `${p.counts.entries} entries`}
+                      {p.counts.invoices > 0 && ` · ${p.counts.invoices} invoices`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
         </Card>
       )}
     </div>

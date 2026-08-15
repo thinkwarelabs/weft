@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/legacy/Input'
+import { Input } from '@/components/ui/input'
 import { ClientFormModal } from '@/components/settings/ClientFormModal'
 import { cn } from '@/lib/cn'
 import { Client } from '@/lib/types'

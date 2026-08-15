@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/legacy/Spinner'
 import { useToast } from '@/components/legacy/Toast'
 import { formatMoney } from '@/lib/money'
@@ -87,120 +87,134 @@ export function Home() {
     <div className="flex flex-col gap-6">
       {nothingWaiting ? (
         <Card>
-          <p className="text-sm text-zinc-600">
-            Nothing needs attention. No overdue invoices, no feedback outstanding, no stalled
-            onboarding.
-          </p>
+          <CardContent>
+            <p className="text-sm text-zinc-600">
+              Nothing needs attention. No overdue invoices, no feedback outstanding, no stalled
+              onboarding.
+            </p>
+          </CardContent>
         </Card>
       ) : (
-        <Card title="Needs attention">
-          <ul className="flex flex-col divide-y divide-zinc-100">
-            {data.overdue.count > 0 && (
-              <li className="py-3 first:pt-0">
-                <Link href="/invoices?status=overdue" className="group flex items-start gap-3">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-red-500" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm text-zinc-900 group-hover:underline">
-                      {data.overdue.count === 1
-                        ? '1 invoice is overdue'
-                        : `${data.overdue.count} invoices are overdue`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Needs attention</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col divide-y divide-zinc-100">
+              {data.overdue.count > 0 && (
+                <li className="py-3 first:pt-0">
+                  <Link href="/invoices?status=overdue" className="group flex items-start gap-3">
+                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-red-500" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm text-zinc-900 group-hover:underline">
+                        {data.overdue.count === 1
+                          ? '1 invoice is overdue'
+                          : `${data.overdue.count} invoices are overdue`}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        {Object.entries(data.overdue.byCurrency)
+                          .map(([c, amount]) => formatMoney(amount, c))
+                          .join(' · ')}
+                        {data.overdue.invoices[0] &&
+                          ` · oldest ${data.overdue.invoices[0].client}, ${daysSince(
+                            data.overdue.invoices[0].due_date,
+                            now
+                          )} days`}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500">
-                      {Object.entries(data.overdue.byCurrency)
-                        .map(([c, amount]) => formatMoney(amount, c))
-                        .join(' · ')}
-                      {data.overdue.invoices[0] &&
-                        ` · oldest ${data.overdue.invoices[0].client}, ${daysSince(
-                          data.overdue.invoices[0].due_date,
-                          now
-                        )} days`}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            )}
+                  </Link>
+                </li>
+              )}
 
-            {data.waiting.map((w) => (
-              <li key={w.id} className="py-3 first:pt-0">
-                <Link href={`/projects/${w.project.id}`} className="group flex items-start gap-3">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-amber-400" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-zinc-900 group-hover:underline">
-                      {w.project.client} · {w.project.name} — waiting on {w.contact}
+              {data.waiting.map((w) => (
+                <li key={w.id} className="py-3 first:pt-0">
+                  <Link href={`/projects/${w.project.id}`} className="group flex items-start gap-3">
+                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-amber-400" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-zinc-900 group-hover:underline">
+                        {w.project.client} · {w.project.name} — waiting on {w.contact}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-zinc-500">
+                        &ldquo;{w.prompt}&rdquo; · asked {daysSince(w.created_at, now)} days ago
+                      </span>
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-zinc-500">
-                      &ldquo;{w.prompt}&rdquo; · asked {daysSince(w.created_at, now)} days ago
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              ))}
 
-            {data.stalledOnboarding.map((p) => (
-              <li key={p.id} className="py-3 first:pt-0">
-                <Link href={`/projects/${p.id}`} className="group flex items-start gap-3">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-zinc-300" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-zinc-900 group-hover:underline">
-                      {p.client} · {p.name} — onboarding {p.progress.done}/{p.progress.total}
+              {data.stalledOnboarding.map((p) => (
+                <li key={p.id} className="py-3 first:pt-0">
+                  <Link href={`/projects/${p.id}`} className="group flex items-start gap-3">
+                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-zinc-300" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-zinc-900 group-hover:underline">
+                        {p.client} · {p.name} — onboarding {p.progress.done}/{p.progress.total}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-zinc-500">
+                        {p.progress.complete
+                          ? 'Checklist done — move it to Active'
+                          : `Untouched for ${daysSince(p.updated_at, now)} days`}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-xs text-zinc-500">
-                      {p.progress.complete
-                        ? 'Checklist done — move it to Active'
-                        : `Untouched for ${daysSince(p.updated_at, now)} days`}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
         </Card>
       )}
 
       {data.draftCount > 0 && (
         <Card>
-          <Link href="/invoices?status=draft" className="text-sm text-zinc-600 hover:underline">
-            {data.draftCount === 1
-              ? '1 invoice is still a draft'
-              : `${data.draftCount} invoices are still drafts`}
-          </Link>
+          <CardContent>
+            <Link href="/invoices?status=draft" className="text-sm text-zinc-600 hover:underline">
+              {data.draftCount === 1
+                ? '1 invoice is still a draft'
+                : `${data.draftCount} invoices are still drafts`}
+            </Link>
+          </CardContent>
         </Card>
       )}
 
-      <Card title="Recent activity">
-        {data.recent.length === 0 ? (
-          <p className="text-sm text-zinc-500">Nothing logged yet.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-zinc-100">
-            {data.recent.map((e) => (
-              <li key={e.id} className="py-2.5 first:pt-0">
-                <Link href={`/projects/${e.project.id}`} className="group block">
-                  <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-zinc-500">
-                    <span
-                      className={
-                        e.author_type === 'client'
-                          ? 'font-medium text-emerald-700'
-                          : 'font-medium text-zinc-700'
-                      }
-                    >
-                      {e.author}
-                    </span>
-                    <span className="truncate group-hover:underline">
-                      {e.project.client} · {e.project.name}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <time dateTime={e.created_at}>
-                      {daysSince(e.created_at, now) === 0
-                        ? 'today'
-                        : `${daysSince(e.created_at, now)}d ago`}
-                    </time>
-                  </div>
-                  <p className="mt-0.5 truncate text-sm text-zinc-700">{e.body}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.recent.length === 0 ? (
+            <p className="text-sm text-zinc-500">Nothing logged yet.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-zinc-100">
+              {data.recent.map((e) => (
+                <li key={e.id} className="py-2.5 first:pt-0">
+                  <Link href={`/projects/${e.project.id}`} className="group block">
+                    <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-zinc-500">
+                      <span
+                        className={
+                          e.author_type === 'client'
+                            ? 'font-medium text-emerald-700'
+                            : 'font-medium text-zinc-700'
+                        }
+                      >
+                        {e.author}
+                      </span>
+                      <span className="truncate group-hover:underline">
+                        {e.project.client} · {e.project.name}
+                      </span>
+                      <span aria-hidden>·</span>
+                      <time dateTime={e.created_at}>
+                        {daysSince(e.created_at, now) === 0
+                          ? 'today'
+                          : `${daysSince(e.created_at, now)}d ago`}
+                      </time>
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-zinc-700">{e.body}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

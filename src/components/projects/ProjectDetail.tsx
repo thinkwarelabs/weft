@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select } from '@/components/legacy/Select'
 import { useToast } from '@/components/legacy/Toast'
 import { formatDateLong } from '@/lib/dates'
@@ -89,56 +89,61 @@ export function ProjectDetail({
         </div>
       </div>
 
-      <Card title="Onboarding">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className={`h-full rounded-full transition-all ${
-                progress.complete ? 'bg-emerald-500' : 'bg-zinc-900'
-              }`}
-              style={{ width: `${progress.percent}%` }}
-            />
+      <Card>
+        <CardHeader>
+          <CardTitle>Onboarding</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  progress.complete ? 'bg-emerald-500' : 'bg-zinc-900'
+                }`}
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <span className="whitespace-nowrap text-sm text-zinc-500">
+              {progress.done} of {progress.total}
+            </span>
           </div>
-          <span className="whitespace-nowrap text-sm text-zinc-500">
-            {progress.done} of {progress.total}
-          </span>
-        </div>
 
-        <ul className="flex flex-col divide-y divide-zinc-100">
-          {project.onboarding.map((item) => {
-            const done = item.doneAt !== null
-            return (
-              <li key={item.key} className="flex items-center gap-3 py-2.5">
-                <input
-                  type="checkbox"
-                  id={`chk-${item.key}`}
-                  checked={done}
-                  disabled={busyKey === item.key}
-                  onChange={(e) => toggle(item.key, e.target.checked)}
-                  className="size-4 shrink-0 cursor-pointer rounded border-zinc-300 accent-zinc-900"
-                />
-                <label
-                  htmlFor={`chk-${item.key}`}
-                  className={`flex-1 cursor-pointer text-sm ${
-                    done ? 'text-zinc-400 line-through' : 'text-zinc-800'
-                  }`}
-                >
-                  {item.label}
-                </label>
-                {done && item.doneAt && (
-                  <span className="whitespace-nowrap text-xs text-zinc-400">
-                    {formatDateLong(item.doneAt.slice(0, 10))}
-                  </span>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+          <ul className="flex flex-col divide-y divide-zinc-100">
+            {project.onboarding.map((item) => {
+              const done = item.doneAt !== null
+              return (
+                <li key={item.key} className="flex items-center gap-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    id={`chk-${item.key}`}
+                    checked={done}
+                    disabled={busyKey === item.key}
+                    onChange={(e) => toggle(item.key, e.target.checked)}
+                    className="size-4 shrink-0 cursor-pointer rounded border-zinc-300 accent-zinc-900"
+                  />
+                  <label
+                    htmlFor={`chk-${item.key}`}
+                    className={`flex-1 cursor-pointer text-sm ${
+                      done ? 'text-zinc-400 line-through' : 'text-zinc-800'
+                    }`}
+                  >
+                    {item.label}
+                  </label>
+                  {done && item.doneAt && (
+                    <span className="whitespace-nowrap text-xs text-zinc-400">
+                      {formatDateLong(item.doneAt.slice(0, 10))}
+                    </span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
 
-        <p className="mt-4 border-t border-zinc-100 pt-4 text-xs text-zinc-500">
-          Never paste a client credential, <code className="rounded bg-zinc-100 px-1">.env</code>{' '}
-          value or API key into this platform. Link to where the secret lives instead.
-        </p>
+          <p className="mt-4 border-t border-zinc-100 pt-4 text-xs text-zinc-500">
+            Never paste a client credential, <code className="rounded bg-zinc-100 px-1">.env</code>{' '}
+            value or API key into this platform. Link to where the secret lives instead.
+          </p>
+        </CardContent>
       </Card>
 
       <RequestFeedback

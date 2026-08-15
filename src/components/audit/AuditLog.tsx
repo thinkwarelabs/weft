@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/legacy/Card'
-import { Input } from '@/components/legacy/Input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/legacy/Pagination'
 import { Select } from '@/components/legacy/Select'
 import { Spinner } from '@/components/legacy/Spinner'
@@ -141,61 +141,63 @@ export function AuditLog() {
       </div>
 
       <Card className="p-0 overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
-              <th className="px-4 py-3">When</th>
-              <th className="px-4 py-3">Actor</th>
-              <th className="px-4 py-3">Action</th>
-              <th className="px-4 py-3">Entity</th>
-              <th className="px-4 py-3">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td className="px-4 py-16 text-center border-b border-zinc-100" colSpan={5}>
-                  <Spinner className="mx-auto size-6 text-zinc-400" />
-                </td>
+        <CardContent>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-500 border-b border-zinc-200 bg-zinc-50">
+                <th className="px-4 py-3">When</th>
+                <th className="px-4 py-3">Actor</th>
+                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">Entity</th>
+                <th className="px-4 py-3">Details</th>
               </tr>
-            ) : logs.length === 0 ? (
-              <tr>
-                <td className="px-4 py-10 text-center text-sm text-zinc-500 border-b border-zinc-100" colSpan={5}>
-                  No audit entries
-                </td>
-              </tr>
-            ) : (
-              logs.map((row) => (
-                <tr key={row.id} className="align-top">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">
-                    {formatWhen(row.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm border-b border-zinc-100">{row.actor_email ?? 'system'}</td>
-                  <td className="px-4 py-3 text-sm font-medium border-b border-zinc-100">
-                    <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">{row.action}</code>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">
-                    {row.entity_type ? (
-                      <span>
-                        {row.entity_type}
-                        {row.entity_id ? <span className="text-zinc-400"> · {row.entity_id.slice(0, 8)}</span> : null}
-                      </span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="max-w-xs px-4 py-3 text-xs text-zinc-500 border-b border-zinc-100">
-                    {row.metadata && Object.keys(row.metadata).length > 0 ? (
-                      <code className="break-words">{JSON.stringify(row.metadata)}</code>
-                    ) : (
-                      '—'
-                    )}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-4 py-16 text-center border-b border-zinc-100" colSpan={5}>
+                    <Spinner className="mx-auto size-6 text-zinc-400" />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-10 text-center text-sm text-zinc-500 border-b border-zinc-100" colSpan={5}>
+                    No audit entries
+                  </td>
+                </tr>
+              ) : (
+                logs.map((row) => (
+                  <tr key={row.id} className="align-top">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">
+                      {formatWhen(row.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-sm border-b border-zinc-100">{row.actor_email ?? 'system'}</td>
+                    <td className="px-4 py-3 text-sm font-medium border-b border-zinc-100">
+                      <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">{row.action}</code>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-600 border-b border-zinc-100">
+                      {row.entity_type ? (
+                        <span>
+                          {row.entity_type}
+                          {row.entity_id ? <span className="text-zinc-400"> · {row.entity_id.slice(0, 8)}</span> : null}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="max-w-xs px-4 py-3 text-xs text-zinc-500 border-b border-zinc-100">
+                      {row.metadata && Object.keys(row.metadata).length > 0 ? (
+                        <code className="break-words">{JSON.stringify(row.metadata)}</code>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
       </Card>
 
       <Pagination

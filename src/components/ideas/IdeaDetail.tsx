@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/legacy/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/legacy/Spinner'
-import { Textarea } from '@/components/legacy/Textarea'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/legacy/Toast'
 import { DELETE_WINDOW_MS, buildThread } from '@/lib/ideas'
 
@@ -70,61 +70,68 @@ export function IdeaDetail({ idea, actorId }: { idea: Idea; actorId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-xl font-semibold tracking-tight">{idea.title}</h1>
-          {canDelete && (
-            <Button variant="ghost" className="h-7 shrink-0 px-2" onClick={removeIdea}>
-              Delete
-            </Button>
-          )}
-        </div>
-        <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-800">{idea.body}</p>
-        <p className="mt-4 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-          {idea.author.name} · {new Date(idea.created_at).toLocaleString()}
-          {idea.project && (
-            <>
-              {' · '}
-              <Link href={`/projects/${idea.project.id}`} className="hover:underline">
-                {idea.project.name}
-              </Link>
-            </>
-          )}
-        </p>
+        <CardContent>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-xl font-semibold tracking-tight">{idea.title}</h1>
+            {canDelete && (
+              <Button variant="ghost" className="h-7 shrink-0 px-2" onClick={removeIdea}>
+                Delete
+              </Button>
+            )}
+          </div>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-800">{idea.body}</p>
+          <p className="mt-4 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+            {idea.author.name} · {new Date(idea.created_at).toLocaleString()}
+            {idea.project && (
+              <>
+                {' · '}
+                <Link href={`/projects/${idea.project.id}`} className="hover:underline">
+                  {idea.project.name}
+                </Link>
+              </>
+            )}
+          </p>
+        </CardContent>
       </Card>
 
-      <Card title="Comments">
-        <CommentComposer
-          ideaId={idea.id}
-          parentId={null}
-          onPosted={() => setReloadKey((k) => k + 1)}
-        />
+      <Card>
+        <CardHeader>
+          <CardTitle>Comments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CommentComposer
+            ideaId={idea.id}
+            parentId={null}
+            onPosted={() => setReloadKey((k) => k + 1)}
+          />
 
-        {!comments ? (
-          <div className="flex min-h-[15vh] items-center justify-center">
-            <Spinner className="size-8 text-zinc-400" />
-          </div>
-        ) : threads.length === 0 ? (
-          <p className="pt-5 text-sm text-zinc-500">
-            No comments yet. This is where the idea gets refined.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-4 pt-5">
-            {threads.map((t) => (
-              <CommentNode
-                key={t.node.id}
-                thread={t}
-                ideaId={idea.id}
-                depth={0}
-                replyTo={replyTo}
-                setReplyTo={setReplyTo}
-                onPosted={() => {
-                  setReplyTo(null)
-                  setReloadKey((k) => k + 1)
-                }}
-              />
-            ))}
-          </ul>
-        )}
+          {!comments ? (
+            <div className="flex min-h-[15vh] items-center justify-center">
+              <Spinner className="size-8 text-zinc-400" />
+            </div>
+          ) : threads.length === 0 ? (
+            <p className="pt-5 text-sm text-zinc-500">
+              No comments yet. This is where the idea gets refined.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-4 pt-5">
+              {threads.map((t) => (
+                <CommentNode
+                  key={t.node.id}
+                  thread={t}
+                  ideaId={idea.id}
+                  depth={0}
+                  replyTo={replyTo}
+                  setReplyTo={setReplyTo}
+                  onPosted={() => {
+                    setReplyTo(null)
+                    setReloadKey((k) => k + 1)
+                  }}
+                />
+              ))}
+            </ul>
+          )}
+        </CardContent>
       </Card>
     </div>
   )
