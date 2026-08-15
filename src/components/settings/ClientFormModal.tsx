@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Modal } from '@/components/legacy/Modal'
+import { useToast } from '@/components/legacy/Toast'
 import { Client } from '@/lib/types'
 
 type FormState = Record<string, string>
@@ -81,7 +81,7 @@ export function ClientFormModal({ open, onClose, initial, onSaved }: {
       title={initial ? 'Edit client' : 'Add client'}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button loading={saving} onClick={save}>Save</Button>
         </>
       }

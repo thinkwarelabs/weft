@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Modal } from '@/components/legacy/Modal'
+import { useToast } from '@/components/legacy/Toast'
 import type { ClientContact } from '@/lib/types'
 
 export function ContactFormModal({
@@ -63,7 +63,7 @@ export function ContactFormModal({
       title={initial ? 'Edit contact' : 'Add contact'}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button loading={saving} onClick={save} disabled={!name.trim() || !email.trim()}>

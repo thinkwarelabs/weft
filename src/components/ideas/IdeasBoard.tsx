@@ -1,15 +1,15 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { Spinner } from '@/components/ui/Spinner'
-import { Textarea } from '@/components/ui/Textarea'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/legacy/Card'
+import { EmptyState } from '@/components/legacy/EmptyState'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Modal } from '@/components/legacy/Modal'
+import { Spinner } from '@/components/legacy/Spinner'
+import { Textarea } from '@/components/legacy/Textarea'
+import { useToast } from '@/components/legacy/Toast'
 
 interface IdeaRow {
   id: string
@@ -153,7 +153,7 @@ function NewIdeaModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
       title="New idea"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button loading={saving} onClick={save} disabled={!title.trim() || !body.trim()}>

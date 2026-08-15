@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { Select } from '@/components/ui/Select'
-import { Textarea } from '@/components/ui/Textarea'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Modal } from '@/components/legacy/Modal'
+import { Select } from '@/components/legacy/Select'
+import { Textarea } from '@/components/legacy/Textarea'
+import { useToast } from '@/components/legacy/Toast'
 import { todayISO } from '@/lib/dates'
 import { Expense } from '@/lib/types'
 
@@ -114,7 +114,7 @@ export function ExpenseFormModal({ open, onClose, initial, onSaved, knownTypes, 
       title={initial ? 'Edit expense' : 'Add expense'}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button loading={saving} onClick={save}>Save</Button>
         </>
       }

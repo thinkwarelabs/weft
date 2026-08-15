@@ -1,12 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Field } from '@/components/ui/Field'
-import { Modal } from '@/components/ui/Modal'
-import { Select } from '@/components/ui/Select'
-import { Textarea } from '@/components/ui/Textarea'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/legacy/Card'
+import { Field } from '@/components/legacy/Field'
+import { Modal } from '@/components/legacy/Modal'
+import { Select } from '@/components/legacy/Select'
+import { Textarea } from '@/components/legacy/Textarea'
+import { useToast } from '@/components/legacy/Toast'
 import type { ClientContact } from '@/lib/types'
 
 interface RequestRow {
@@ -142,7 +142,7 @@ function RequestModal({
       title="Request feedback"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button loading={saving} onClick={send} disabled={!contactId || !prompt.trim()}>

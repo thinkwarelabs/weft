@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
-import { Pagination } from '@/components/ui/Pagination'
-import { Select } from '@/components/ui/Select'
-import { Spinner } from '@/components/ui/Spinner'
-import { useToast } from '@/components/ui/Toast'
+import { Card } from '@/components/legacy/Card'
+import { Input } from '@/components/legacy/Input'
+import { Pagination } from '@/components/legacy/Pagination'
+import { Select } from '@/components/legacy/Select'
+import { Spinner } from '@/components/legacy/Spinner'
+import { useToast } from '@/components/legacy/Toast'
 
 interface AuditLogRow {
   id: string

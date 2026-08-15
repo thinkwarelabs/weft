@@ -1,15 +1,15 @@
 'use client'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { DatePicker } from '@/components/ui/DatePicker'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Spinner } from '@/components/ui/Spinner'
-import { Textarea } from '@/components/ui/Textarea'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/legacy/Card'
+import { DatePicker } from '@/components/legacy/DatePicker'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Select } from '@/components/legacy/Select'
+import { Spinner } from '@/components/legacy/Spinner'
+import { Textarea } from '@/components/legacy/Textarea'
+import { useToast } from '@/components/legacy/Toast'
 import { ClientPicker } from '@/components/invoices/ClientPicker'
 import { gstBreakdown, isIntraState } from '@/lib/gst'
 import { computeTotals, formatMoney } from '@/lib/money'
@@ -407,7 +407,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
             <Button className="w-full" loading={saving === 'finalize'} onClick={handleFinalize}>
               Finalize &amp; download PDF
             </Button>
-            <Button className="w-full" variant="secondary" loading={saving === 'draft'} onClick={handleSaveDraft}>
+            <Button className="w-full" variant="outline" loading={saving === 'draft'} onClick={handleSaveDraft}>
               Save draft
             </Button>
           </div>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/legacy/Input'
 import { ClientFormModal } from '@/components/settings/ClientFormModal'
 import { cn } from '@/lib/cn'
 import { Client } from '@/lib/types'
@@ -107,7 +107,7 @@ export function ClientPicker({ selected, onSelect, error }: {
             </div>
           )}
         </div>
-        <Button type="button" variant="secondary" className="shrink-0 whitespace-nowrap" onClick={() => setModalOpen(true)}>
+        <Button type="button" variant="outline" className="shrink-0 whitespace-nowrap" onClick={() => setModalOpen(true)}>
           New client
         </Button>
       </div>

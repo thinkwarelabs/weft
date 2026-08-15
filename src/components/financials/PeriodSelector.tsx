@@ -1,5 +1,5 @@
 'use client'
-import { Input } from '@/components/ui/Input'
+import { Input } from '@/components/legacy/Input'
 import { cn } from '@/lib/cn'
 import { Granularity, PeriodSel, periodLabel, periodRange, shiftPeriod } from '@/lib/financials'
 

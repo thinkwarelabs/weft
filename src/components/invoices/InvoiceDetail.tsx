@@ -2,11 +2,11 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { Spinner } from '@/components/ui/Spinner'
-import { useToast } from '@/components/ui/Toast'
+import { Badge } from '@/components/legacy/Badge'
+import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/legacy/ConfirmDialog'
+import { Spinner } from '@/components/legacy/Spinner'
+import { useToast } from '@/components/legacy/Toast'
 import { formatDateLong } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
 import { daysOverdue, isOverdue } from '@/lib/overdue'
@@ -130,21 +130,21 @@ export function InvoiceDetail({ id }: { id: string }) {
         <div className="flex gap-2">
           {invoice.status === 'draft' && (
             <>
-              <Link href={`/invoices/${id}/edit`}><Button variant="secondary">Edit</Button></Link>
+              <Link href={`/invoices/${id}/edit`}><Button variant="outline">Edit</Button></Link>
               <Button loading={busy === 'finalize'} onClick={finalize}>Finalize</Button>
             </>
           )}
           {invoice.status === 'finalized' && (
             <>
-              <Button variant="danger" onClick={() => setConfirmAction('void')}>Void</Button>
-              <Button variant="primary" onClick={() => setPaymentModalOpen(true)}>Record payment</Button>
+              <Button variant="destructive" onClick={() => setConfirmAction('void')}>Void</Button>
+              <Button variant="default" onClick={() => setPaymentModalOpen(true)}>Record payment</Button>
             </>
           )}
           {invoice.status === 'paid' && (
-            <Button variant="secondary" onClick={() => setConfirmAction('undo')}>Undo payment</Button>
+            <Button variant="outline" onClick={() => setConfirmAction('undo')}>Undo payment</Button>
           )}
           {invoice.status === 'cancelled' && (
-            <Button variant="secondary" onClick={() => setConfirmAction('restore')}>Restore invoice</Button>
+            <Button variant="outline" onClick={() => setConfirmAction('restore')}>Restore invoice</Button>
           )}
           <a href={`${pdfUrl}?download=1`}><Button>Download PDF</Button></a>
         </div>

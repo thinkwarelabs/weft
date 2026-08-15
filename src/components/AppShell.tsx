@@ -15,12 +15,17 @@ export interface AppShellActor {
   image: string | null
 }
 
+// Ordered by how the studio actually works: what needs me, who we work for,
+// what we're building, then the money. Invoices used to be the front door
+// because this repo was the invoicing app — that was a fossil, not a decision.
 const NAV = [
-  { href: '/', label: 'Invoices' },
-  { href: '/financials', label: 'Financials' },
+  { href: '/', label: 'Home' },
   { href: '/clients', label: 'Clients' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/invoices', label: 'Invoices' },
+  { href: '/financials', label: 'Financials' },
   { href: '/ideas', label: 'Ideas' },
-  { href: '/settings', label: 'Business profile' },
+  { href: '/settings', label: 'Settings' },
 ] as const
 
 const linkClass =

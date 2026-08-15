@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { exchangeToken, ClientUnauthorizedError } from '@/lib/auth/client-token'
 import { logAudit } from '@/lib/audit'
+import { env } from '@/lib/env'
 
 export const runtime = 'nodejs'
 // The token must never be cached, by us or by anything between us.
@@ -30,9 +31,10 @@ export async function GET(
       metadata: { projectId: claims.projectId, contactId: claims.contactId },
     })
 
-    return NextResponse.redirect(new URL('/f', process.env.APP_URL ?? 'http://localhost:3000'), {
-      status: 303,
-    })
+    // env.APP_URL is validated at boot. A `?? 'http://localhost:3000'` fallback
+    // here would send a real client to their own machine if the var were ever
+    // missing in production — a silent failure instead of a loud one.
+    return NextResponse.redirect(new URL('/f', env.APP_URL), { status: 303 })
   } catch (error) {
     if (error instanceof ClientUnauthorizedError) {
       // The reason is recorded for us; the visitor is told nothing that
@@ -43,10 +45,7 @@ export async function GET(
         entityType: 'client_token',
         metadata: { decision: error.decision },
       })
-      return NextResponse.redirect(
-        new URL('/f/expired', process.env.APP_URL ?? 'http://localhost:3000'),
-        { status: 303 },
-      )
+      return NextResponse.redirect(new URL('/f/expired', env.APP_URL), { status: 303 })
     }
     throw error
   }

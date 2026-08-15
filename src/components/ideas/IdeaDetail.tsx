@@ -2,11 +2,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
-import { Textarea } from '@/components/ui/Textarea'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/legacy/Card'
+import { Spinner } from '@/components/legacy/Spinner'
+import { Textarea } from '@/components/legacy/Textarea'
+import { useToast } from '@/components/legacy/Toast'
 import { DELETE_WINDOW_MS, buildThread } from '@/lib/ideas'
 
 interface CommentRow {

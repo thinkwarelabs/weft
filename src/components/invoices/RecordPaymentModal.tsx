@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { DatePicker } from '@/components/ui/DatePicker'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { useToast } from '@/components/ui/Toast'
+import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/legacy/DatePicker'
+import { Field } from '@/components/legacy/Field'
+import { Input } from '@/components/legacy/Input'
+import { Modal } from '@/components/legacy/Modal'
+import { useToast } from '@/components/legacy/Toast'
 import { todayISO } from '@/lib/dates'
 import { formatMoney, round2 } from '@/lib/money'
 import { Invoice } from '@/lib/types'
@@ -94,7 +94,7 @@ export function RecordPaymentModal({ invoice, open, onClose, onSaved }: {
       title={`Record payment${invoice.invoice_number ? ` · ${invoice.invoice_number}` : ''}`}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button loading={saving} onClick={save}>Save</Button>
         </>
       }
